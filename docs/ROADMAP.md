@@ -12,12 +12,14 @@ Each phase has a learning goal, not just a feature goal. Don't skip ahead — ea
 
 ## Phase 1 — MVP chat (no auth, no DB)
 **Learning goal:** understand server-side streaming and where the "harness" boundary lives.
-- Build `/lib/agent/systemPrompt.ts` with your first real custom system prompt
-- Build `/lib/agent/harness.ts` — single-turn call to OpenRouter via `@openrouter/ai-sdk-provider`, streamed. Pick a default model (e.g. `anthropic/claude-sonnet-4.5`) but read it from `OPENROUTER_MODEL` so it's swappable without a code change
-- Build `POST /api/chat` Route Handler that calls the harness and streams back
-- Build chat UI using `useChat` from `@ai-sdk/react`
+- [x] Build `/lib/agent/systemPrompt.ts` with your first real custom system prompt — Tutor persona, v1, hard-throws on unknown `personaId`
+- [x] Build `/lib/agent/harness.ts` — single-turn call to OpenRouter via `@openrouter/ai-sdk-provider`, streamed. Reads `OPENROUTER_MODEL` (default `anthropic/claude-haiku-4.5`). Capped at `maxTokens: 1024`. Owns the orchestration loop rather than using the SDK's `ToolLoopAgent` — see ADR-006.
+- [x] Build `POST /api/chat` Route Handler that calls the harness and streams back — `src/app/api/chat/route.ts`. Manual curl tests: 3/3 passing (invalid JSON → 400, missing/malformed `messages` → 400, valid request → 200 + `Transfer-Encoding: chunked`).
+- [ ] Build chat UI using `useChat` from `@ai-sdk/react`
 - Conversation history lives only in browser memory (lost on refresh) — that's fine for this phase
 - **Done when:** you can have a full streaming conversation with your own system prompt, end to end, with nothing persisted
+
+**Phase 1 status (2026-09-05):** harness and route handler are proven end-to-end **only** via the free-tier model `minimax/minimax-m3:free` (uncommented temporarily in `.env.local` for the curl test, then re-commented). The paid default `anthropic/claude-haiku-4.5` is the documented real default in `docs/ARCHITECTURE.md` and `.env.local` notes, but is currently blocked on the OpenRouter account being out of credits — no real-network round-trip has been observed against it. Two harness behaviors are still unverified against a real streaming response: (1) `cancel()` reaching a live upstream request (only proven via stub test), and (2) `maxTokens: 1024` cap behavior against a response longer than 1024 tokens (no such response has been observed yet). Both are tracked in the `harness.ts` TODO comment and slated for Phase 5's real test coverage.
 
 ## Phase 2 — Persistence (Database)
 **Learning goal:** relational data modeling, migrations, querying from a server.
@@ -49,6 +51,7 @@ Each phase has a learning goal, not just a feature goal. Don't skip ahead — ea
 - Loading states, empty states, mobile-responsive polish
 - Basic observability (log errors, maybe a simple usage dashboard)
 - Production deploy checklist, custom domain if desired
+- **Real test coverage for the harness.** Phase 1 shipped with a stub-only test surface: pump loop, cancel propagation, and error surfacing are covered against a fake `streamText`, but `cancel()` against a real live stream and `maxTokens` cap behavior against a long response have not been observed end-to-end. Phase 5 should adopt a real test runner and close those gaps — the harness `TODO` comment tracks what's outstanding.
 - **Done when:** you'd be comfortable sending the link to someone else to actually use
 
 ---
