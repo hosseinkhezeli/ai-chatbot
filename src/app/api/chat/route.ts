@@ -1,58 +1,182 @@
+// src/app/api/chat/route.ts
+
+import { createUIMessageStreamResponse, toUIMessageStream } from 'ai';
+import type { UIMessage } from 'ai';
+import { and, eq } from 'drizzle-orm';
+
 import { streamChat } from '@agent/harness';
 import { buildSystemPrompt } from '@agent/systemPrompt';
-import type { UIMessage } from 'ai';
+import { getRequiredCurrentUser } from '@/lib/auth/current-user';
+import { db } from '@/db/client';
+import { conversations, messages } from '@/db/schema';
 
-// Route Handlers are uncached by default for POST. We still set explicit
-// headers to defeat intermediate proxy buffering (nginx et al.) and prevent
-// transparent transcoding, both of which would break token-by-token streaming.
-const STREAM_HEADERS = {
-  'Content-Type': 'text/plain; charset=utf-8',
-  'Cache-Control': 'no-cache, no-transform',
-  'X-Accel-Buffering': 'no',
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+type ChatRequestBody = {
+  messages: UIMessage[];
+  conversationId?: string;
 };
 
-// Node runtime: the AI SDK + OpenRouter provider require Node 22+ (per
-// @openrouter/ai-sdk-provider README). Edge would be faster for streaming
-// latency but isn't supported by the current provider build.
-export const runtime = 'nodejs';
+function isChatRequestBody(value: unknown): value is ChatRequestBody {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const body = value as Record<string, unknown>;
+
+  return Array.isArray(body.messages);
+}
+
+function isValidUuid(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 
 export async function POST(req: Request): Promise<Response> {
-  let raw: unknown;
+  let user;
+
   try {
-    raw = await req.json();
+    user = await getRequiredCurrentUser();
   } catch {
-    return Response.json(
-      { error: 'Request body must be valid JSON' },
-      { status: 400 },
-    );
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Minimal structural validation. Phase 5 will replace this with a real
-  // schema (Zod or similar) — for now we just need to reject obviously
-  // malformed payloads before handing them to the harness.
-  if (
-    typeof raw !== 'object' ||
-    raw === null ||
-    !('messages' in raw) ||
-    !Array.isArray((raw as { messages: unknown }).messages)
-  ) {
-    return Response.json(
-      { error: 'Request body must include a messages array' },
-      { status: 400 },
-    );
+  let body: unknown;
+
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ error: 'Request body must be valid JSON' }, { status: 400 });
   }
 
-  // Trusted-boundary cast: at this point messages is `unknown[]`. We don't
-  // validate each element's shape here — useChat's UIMessage is a
-  // discriminated union and per-element validation is Phase 5 scope. The
-  // harness's convertToModelMessages will throw on genuinely malformed input
-  // and surface it as a stream error.
-  const messages = (raw as { messages: UIMessage[] }).messages;
+  if (!isChatRequestBody(body)) {
+    return Response.json({ error: 'Request body must include a messages array' }, { status: 400 });
+  }
 
-  const stream = streamChat({
-    messages,
-    system: buildSystemPrompt(),
-  });
+  const { messages: uiMessages, conversationId } = body;
 
-  return new Response(stream, { headers: STREAM_HEADERS });
+  if (uiMessages.length === 0) {
+    return Response.json({ error: 'Messages array cannot be empty' }, { status: 400 });
+  }
+
+  const lastMessage = uiMessages.at(-1);
+
+  if (!lastMessage || lastMessage.role !== 'user') {
+    return Response.json({ error: 'Last message must be from user' }, { status: 400 });
+  }
+
+  let conversationIdFinal: string;
+
+  try {
+    if (conversationId !== undefined) {
+      if (!isValidUuid(conversationId)) {
+        return Response.json({ error: 'Invalid conversation ID' }, { status: 400 });
+      }
+
+      const [conversation] = await db
+        .select({
+          id: conversations.id,
+        })
+        .from(conversations)
+        .where(and(eq(conversations.id, conversationId), eq(conversations.userId, user.id)))
+        .limit(1);
+
+      if (!conversation) {
+        return Response.json({ error: 'Conversation not found' }, { status: 404 });
+      }
+
+      conversationIdFinal = conversation.id;
+    } else {
+      const [conversation] = await db
+        .insert(conversations)
+        .values({
+          userId: user.id,
+          title: null,
+          systemPromptVersion: 'v1',
+        })
+        .returning({
+          id: conversations.id,
+        });
+
+      conversationIdFinal = conversation.id;
+    }
+
+    await db.insert(messages).values({
+      conversationId: conversationIdFinal,
+      role: 'user',
+      content: lastMessage.parts,
+    });
+  } catch (error) {
+    console.error('Failed to persist user message:', error);
+
+    return Response.json({ error: 'Failed to persist message' }, { status: 500 });
+  }
+
+  try {
+    const result = await streamChat({
+      messages: uiMessages,
+      system: buildSystemPrompt(),
+      abortSignal: req.signal,
+    });
+
+    const stream = toUIMessageStream({
+      stream: result.stream,
+      originalMessages: uiMessages,
+
+      onFinish: async ({ responseMessage, isAborted, finishReason }) => {
+        if (isAborted || finishReason === 'error') {
+          return;
+        }
+
+        if (responseMessage.parts.length === 0) {
+          return;
+        }
+
+        const hasText = responseMessage.parts.some(
+          (part) => part.type === 'text' && part.text.trim().length > 0,
+        );
+
+        if (!hasText) {
+          return;
+        }
+
+        try {
+          await db.insert(messages).values({
+            conversationId: conversationIdFinal,
+            role: 'assistant',
+            content: responseMessage.parts,
+          });
+
+          await db
+            .update(conversations)
+            .set({
+              updatedAt: new Date(),
+            })
+            .where(
+              and(eq(conversations.id, conversationIdFinal), eq(conversations.userId, user.id)),
+            );
+        } catch (error) {
+          console.error('Failed to persist assistant message:', error);
+        }
+      },
+
+      onError: (error) => {
+        console.error('UI message stream error:', error);
+
+        return 'An error occurred while generating the response.';
+      },
+    });
+
+    return createUIMessageStreamResponse({
+      stream,
+    });
+  } catch (error) {
+    console.error('Chat request failed:', error);
+
+    return Response.json({ error: 'Failed to generate chat response' }, { status: 500 });
+  }
 }

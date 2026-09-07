@@ -20,7 +20,11 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@agent/*": ["./lib/agent/*"]
+      "@agent/*": ["./lib/agent/*"],
+      "@ai/*": ["./lib/ai/*"],
+      "@/db/*": ["./lib/db/*"],
+      "@/lib/auth": ["./lib/auth"],
+      "@/lib/auth/*": ["./lib/auth/*"]
     }
   },
   "include": [
