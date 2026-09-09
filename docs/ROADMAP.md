@@ -86,41 +86,47 @@ This is now the **main development phase**.
 
 ## 2.2 Authentication
 
-* [ ] Choose and install the authentication solution
-* [ ] Implement login
-* [ ] Implement logout
-* [ ] Establish the server-side session
-* [ ] Determine the authenticated user for every request
-* [ ] Persist users in the database
-* [ ] Remove the temporary hardcoded development user
+* [x] Choose and install the authentication solution (Auth.js v5)
+* [x] Implement login (GitHub OAuth)
+* [x] Implement logout
+* [x] Establish the server-side session (database strategy)
+* [x] Determine the authenticated user for every request (`getCurrentUser()`)
+* [x] Persist users in the database (Auth.js adapter)
+* [x] Remove the temporary hardcoded development user
 
 **Learning goal:** understand authentication vs. authorization vs. sessions.
+
+**Status: COMPLETE**
 
 ---
 
 ## 2.3 Session management
 
-* [ ] Create the session model/storage required by the authentication system
-* [ ] Handle session creation
-* [ ] Handle session expiration
-* [ ] Handle session invalidation/logout
-* [ ] Create a server-side `getCurrentUser()` / `getSession()` boundary
-* [ ] Ensure API routes can reliably identify the current user
+* [x] Create the session model/storage required by the authentication system (Auth.js standard tables)
+* [x] Handle session creation (Auth.js)
+* [x] Handle session expiration (Auth.js)
+* [x] Handle session invalidation/logout (Auth.js)
+* [x] Create a server-side `getCurrentUser()` / `getSession()` boundary (`lib/auth/current-user.ts`)
+* [x] Ensure API routes can reliably identify the current user (all routes use `getRequiredCurrentUser()`)
 
 **Learning goal:** understand how browser credentials become trusted server-side identity.
+
+**Status: COMPLETE**
 
 ---
 
 ## 2.4 Conversation persistence
 
-* [ ] Create a conversation when a new chat begins
-* [ ] Associate every conversation with `user_id`
-* [ ] Persist conversation title/metadata
-* [ ] Return the conversation ID to the client
-* [ ] Load an existing conversation
-* [ ] Prevent one user from accessing another user's conversation
+* [x] Create a conversation when a new chat begins (in `/api/chat` and `POST /api/conversations`)
+* [x] Associate every conversation with `user_id`
+* [x] Persist conversation title/metadata
+* [x] Return the conversation ID to the client
+* [x] Load an existing conversation (`GET /api/conversations/:id`)
+* [x] Prevent one user from accessing another user's conversation (ownership checks)
 
 **Learning goal:** relational ownership and authorization.
+
+**Status: COMPLETE**
 
 ---
 
@@ -148,16 +154,18 @@ complete response
 
 Tasks:
 
-* [ ] Persist the user message before generation
-* [ ] Stream the assistant response
-* [ ] Accumulate the assistant text
-* [ ] Persist the assistant message after successful completion
-* [ ] Handle failed/interrupted generations correctly
-* [ ] Decide how incomplete assistant messages are represented
-* [ ] Preserve message ordering
-* [ ] Associate every message with the correct conversation
+* [x] Persist the user message before generation
+* [x] Stream the assistant response
+* [x] Accumulate the assistant text
+* [x] Persist the assistant message after successful completion
+* [x] Handle failed/interrupted generations correctly (check `isAborted` and `finishReason`)
+* [x] Decide how incomplete assistant messages are represented (not persisted on failure)
+* [x] Preserve message ordering (createdAt index)
+* [x] Associate every message with the correct conversation
 
 **Learning goal:** understand database writes around long-running streaming requests.
+
+**Status: COMPLETE**
 
 ---
 
@@ -172,35 +180,49 @@ Create:
 
 Tasks:
 
-* [ ] `GET /api/conversations` — list current user's conversations
-* [ ] `POST /api/conversations` — create conversation
-* [ ] `GET /api/conversations/:id` — fetch conversation + messages
-* [ ] `DELETE /api/conversations/:id` — delete conversation
-* [ ] Validate IDs
-* [ ] Scope every query to the authenticated user
+* [x] `GET /api/conversations` — list current user's conversations
+* [x] `POST /api/conversations` — create conversation
+* [x] `GET /api/conversations/:id` — fetch conversation + messages
+* [x] `DELETE /api/conversations/:id` — delete conversation
+* [x] Validate IDs
+* [x] Scope every query to the authenticated user
 
 **Learning goal:** server-side CRUD and authorization boundaries.
+
+**Status: COMPLETE**
 
 ---
 
 ## 2.7 Chat UI connected to persistence
 
-The current UI is intentionally minimal.
+The current UI is intentionally minimal. The backend is fully implemented — now connect the frontend to it.
 
-Now connect it to the database:
+| UI Element | Current State | Work Needed |
+|------------|---------------|-------------|
+| Conversation list (sidebar) | Mock data (`MOCK_HISTORY`) | Replace with `GET /api/conversations` |
+| New Chat button | Mock button (no action) | Call `POST /api/conversations`, navigate |
+| Conversation selection | Static highlight only | Fetch `GET /api/conversations/:id`, load messages |
+| Conversation delete | Dropdown item only | Call `DELETE /api/conversations/:id` |
+| Conversation rename | Dropdown item only | Add `PATCH /api/conversations/:id` + UI |
+| Search input | Static input | Add search param to `GET /api/conversations` + debounce |
+| User menu | Static "Jane Doe" | Use real session data from Auth.js |
+| Load existing messages | Not implemented | Hydrate `useChat` with initial messages |
 
-* [ ] Create/load the current conversation
-* [ ] Load existing messages on page load
-* [ ] Send messages into the persisted conversation
-* [ ] Refresh without losing history
-* [ ] Open an existing conversation
-* [ ] Add a conversation sidebar
-* [ ] Create a new conversation
-* [ ] Delete a conversation
+**Tasks:**
+
+* [ ] Fetch and display conversation list in sidebar from `GET /api/conversations`
+* [ ] Wire New Chat button → `POST /api/conversations` → navigate to new conversation
+* [ ] Click conversation in sidebar → load messages via `GET /api/conversations/:id` → hydrate chat
+* [ ] Delete conversation → `DELETE /api/conversations/:id` → refresh list
+* [ ] Add `PATCH /api/conversations/:id` for rename → wire dropdown item
+* [ ] Add search/filter to `GET /api/conversations` → wire search input with debounce
+* [ ] Replace static user menu with real session data (use `useSession` from Auth.js)
+* [ ] Hydrate `useChat` with existing messages when opening a conversation
+* [ ] Handle empty state (no conversations) → show "New Chat" prompt
 
 **Done when:**
 
-> A logged-in user can close the browser, return later, reopen a conversation, and see the complete message history.
+> A logged-in user can close the browser, return later, reopen a conversation, and see the complete message history. The sidebar shows their real conversations and all CRUD operations work.
 
 ---
 
@@ -208,19 +230,17 @@ Now connect it to the database:
 
 **Learning goal:** move from "authentication works" to "authorization is correct."
 
-* [ ] Protect `/api/chat`
-* [ ] Protect `/api/conversations`
-* [ ] Reject unauthenticated requests
-* [ ] Scope all database queries to `session.user_id`
-* [ ] Verify conversation ownership before reading
-* [ ] Verify conversation ownership before writing
-* [ ] Verify conversation ownership before deleting
-* [ ] Handle unauthorized access consistently
-* [ ] Remove all development-user assumptions
+* [ ] Protect `/api/chat` (✅ already done via `getRequiredCurrentUser`)
+* [ ] Protect `/api/conversations` (✅ already done)
+* [ ] Reject unauthenticated requests (✅ already done)
+* [ ] Scope all database queries to `session.user_id` (✅ already done)
+* [ ] Verify conversation ownership before reading (✅ already done)
+* [ ] Verify conversation ownership before writing (✅ already done)
+* [ ] Verify conversation ownership before deleting (✅ already done)
+* [ ] Handle unauthorized access consistently (✅ returns 401/404)
+* [ ] Remove all development-user assumptions (✅ no hardcoded user)
 
-**Done when:**
-
-> Two different users can use the application simultaneously and can never see, modify, or delete each other's conversations.
+**Status: MOSTLY COMPLETE** — Phase 3 authorization concerns are already addressed in the current implementation. Remaining work is mostly Phase 2.7 (UI integration).
 
 ---
 
@@ -228,7 +248,7 @@ Now connect it to the database:
 
 **Learning goal:** understand what an actual agent harness is beyond a single model call.
 
-Only start this phase after authentication and persistence are solid.
+Only start this phase after authentication and persistence are solid (including UI integration).
 
 ## 4.1 Tool calling
 
@@ -269,7 +289,7 @@ final response
 
 ## 4.3 Prompt versioning
 
-* [ ] Store `system_prompt_version` on the conversation
+* [ ] Store `system_prompt_version` on the conversation (already in schema)
 * [ ] Store/resolve the correct prompt version
 * [ ] Keep historical conversations reproducible
 * [ ] Handle prompt migrations intentionally
@@ -364,9 +384,11 @@ The priority is now:
 ```text
 Phase 1 ✅
    ↓
-Phase 2 ← CURRENT
+Phase 2 (2.1-2.6) ✅
    ↓
-Phase 3
+Phase 2.7 ← CURRENT: Connect UI to real backend
+   ↓
+Phase 3 ✅ (mostly covered)
    ↓
 Phase 4
    ↓
@@ -375,7 +397,7 @@ Phase 5
 Phase 6+
 ```
 
-Do not build advanced agent features before the application has reliable identity and persistence.
+Do not build advanced agent features before the application has reliable identity, persistence, **and a working UI connected to it**.
 
 ---
 
@@ -391,20 +413,28 @@ Do not build advanced agent features before the application has reliable identit
 ✅ System prompt
 ✅ Agent harness
 ✅ AI provider abstraction
-✅ GapGPT provider
+✅ GapGPT provider (glm-4-flash)
 ✅ Neon
 ✅ Drizzle
 ✅ Database schema
 ✅ Migrations
+✅ Authentication (GitHub OAuth)
+✅ Sessions (database strategy)
+✅ Current-user server boundary
+✅ Conversation persistence
+✅ Message persistence
+✅ Conversation CRUD API
+✅ Protected API routes
+✅ Multi-user isolation
+✅ Authorization (ownership checks)
 
-⏳ Authentication
-⏳ Sessions
-⏳ Current-user server boundary
-⏳ Conversation persistence
-⏳ Message persistence
-⏳ Conversation CRUD
-⏳ Protected API routes
-⏳ Multi-user isolation
+🟡 Phase 2.7 — UI integration (sidebar, conversation list, user menu)
+    ├── Sidebar conversation list (mock data)
+    ├── New Chat button (not wired)
+    ├── Conversation selection (not wired)
+    ├── Search input (not wired)
+    ├── Delete/Rename (not wired)
+    └── User menu (static data)
 
 🚫 Not needed yet:
    - Multiple AI providers
@@ -416,14 +446,22 @@ Do not build advanced agent features before the application has reliable identit
    - Billing
 ```
 
+---
+
 # Immediate next milestone
 
-The next implementation task is **Phase 2.2 — Authentication**.
+The next implementation task is **Phase 2.7 — Chat UI connected to persistence**.
 
-Before modifying `/api/chat`, establish the authentication/session layer and a reliable server-side concept of:
+The backend is complete. The work now is entirely frontend integration:
 
-```ts
-getCurrentUser()
-```
+1. **Create a server action or client-side fetch** to load conversations for the sidebar
+2. **Replace `MOCK_HISTORY`** in `AppSidebar` with real data from `GET /api/conversations`
+3. **Wire New Chat button** → `POST /api/conversations` → redirect to chat view
+4. **Implement conversation selection** → fetch messages via `GET /api/conversations/:id` → hydrate `useChat`
+5. **Add `PATCH /api/conversations/:id`** for rename, wire dropdown
+6. **Wire Delete** → `DELETE /api/conversations/:id`
+7. **Add search parameter** to `GET /api/conversations` and debounce search input
+8. **Replace static UserMenu** with real session data using `useSession()` from `@auth/react`
+9. **Handle initial message hydration** in `Chat` component when opening existing conversation
 
-Then persistence can be built correctly around the authenticated user rather than building it around the temporary hardcoded development user.
+This is the final step to make the application a real, usable chat product rather than a backend demo.

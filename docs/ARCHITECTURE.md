@@ -43,7 +43,7 @@ GapGPT adapter
   ↓
 GapGPT API
   ↓
-gapgpt-qwen-3.6
+glm-4-flash
 ```
 
 ### Key principles
@@ -85,6 +85,9 @@ The repository intentionally separates application code from server-side infrast
 │   │   ├── index.ts
 │   │   └── types.ts
 │   │
+│   ├── auth/
+│   │   └── current-user.ts
+│   │
 │   └── db/
 │       ├── client.ts
 │       └── schema.ts
@@ -92,16 +95,35 @@ The repository intentionally separates application code from server-side infrast
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   └── chat/
-│   │   │       └── route.ts
+│   │   │   ├── chat/
+│   │   │   │   └── route.ts
+│   │   │   ├── conversations/
+│   │   │   │   ├── route.ts
+│   │   │   │   └── [id]/
+│   │   │   │       └── route.ts
+│   │   │   └── auth/
+│   │   │       └── [...nextauth]/
+│   │   │           └── route.ts
+│   │   ├── auth/
+│   │   │   ├── signin/
+│   │   │   │   └── page.tsx
+│   │   │   └── error/
+│   │   │       └── page.tsx
 │   │   ├── page.tsx
-│   │   └── ...
+│   │   └── layout.tsx
 │   │
 │   ├── components/
 │   │   ├── chat/
 │   │   │   └── chat.tsx
+│   │   ├── layout/
+│   │   │   ├── app-shell.tsx
+│   │   │   ├── app-sidebar.tsx
+│   │   │   └── user-menu.tsx
 │   │   └── ui/
 │   │       └── ...
+│   │
+│   ├── hooks/
+│   │   └── use-mobile.ts
 │   │
 │   └── lib/
 │       └── utils.ts
@@ -119,6 +141,8 @@ Root `lib/` contains server-side domain and infrastructure code.
 `lib/agent/` contains agent/application logic.
 
 `lib/ai/` contains the provider abstraction and concrete AI integrations.
+
+`lib/auth/` contains authentication utilities and server-side session boundaries.
 
 `lib/db/` contains database access.
 
@@ -150,6 +174,22 @@ The frontend must not know about:
 
 The current chat UI is intentionally simple. It is primarily a test surface for the backend and streaming architecture.
 
+### Current UI implementation status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Chat message rendering | ✅ Working | Streams and displays messages via `useChat` |
+| Streaming indicator | ✅ Working | Shows "Thinking..." during generation |
+| Error display | ✅ Working | Shows error bubble on failure |
+| Input + send | ✅ Working | Textarea with Enter-to-send, disabled during streaming |
+| Attachment button | 🔴 Mocked | Button exists but no file upload implementation |
+| Sidebar (conversation list) | 🟡 Partial | UI complete but backed by `MOCK_HISTORY` static data |
+| Sidebar search | 🔴 Mocked | Input exists but no search API or filtering |
+| New Chat button | 🔴 Mocked | Button exists but doesn't call API |
+| Conversation items | 🟡 Partial | Rename/Delete dropdown exists but not wired to API |
+| User menu | 🟡 Partial | UI complete but shows static "Jane Doe" data |
+| Settings/Upgrade items | 🔴 Mocked | Menu items exist but no backend |
+
 ---
 
 ## API layer (`/src/app/api`)
@@ -166,30 +206,28 @@ Responsibilities:
 * Call the agent harness
 * Stream the assistant response back to the client
 
-### Current endpoint
+### Current endpoints
 
 ```text
-POST /api/chat
-```
-
-### Planned endpoints
-
-```text
-GET    /api/conversations
-POST   /api/conversations
-GET    /api/conversations/:id
-DELETE /api/conversations/:id
+POST   /api/chat                    ✅ Fully implemented with persistence
+GET    /api/conversations           ✅ Lists authenticated user's conversations
+POST   /api/conversations           ✅ Creates new conversation
+GET    /api/conversations/:id       ✅ Fetches conversation metadata
+DELETE /api/conversations/:id       ✅ Deletes conversation (with ownership check)
+GET/POST /api/auth/[...nextauth]    ✅ Auth.js handlers
 ```
 
 ### Authentication endpoints
 
-Auth.js will provide:
+Auth.js provides:
 
 ```text
 /api/auth/*
+/auth/signin
+/auth/error
 ```
 
-once authentication is implemented.
+All authentication endpoints are implemented and working with GitHub OAuth.
 
 The API layer is not responsible for knowing how an AI provider works. It calls the harness and consumes the resulting AI SDK stream.
 
@@ -318,7 +356,7 @@ chat
 The application therefore does not contain:
 
 ```text
-gapgpt-qwen-3.6
+glm-4-flash
 ```
 
 Provider-specific model identifiers belong inside the adapter.
@@ -377,7 +415,7 @@ application model
         ↓
 GapGPT adapter
         ↓
-gapgpt-qwen-3.6
+glm-4-flash
 ```
 
 Current endpoint:
@@ -429,6 +467,9 @@ Current domain model:
 
 ```text
 users
+accounts          (Auth.js)
+sessions          (Auth.js)
+verification_tokens (Auth.js)
 conversations
 messages
 ```
@@ -437,35 +478,54 @@ messages
 
 ```text
 users
+  id              uuid, primary key
+  email           text, unique
+  name            text, nullable
+  email_verified  timestamp, nullable
+  image           text, nullable
+  created_at      timestamp
 
-  id          uuid, primary key
-  email       text, unique
-  created_at  timestamp
+accounts          (Auth.js standard tables)
+  user_id         uuid, FK → users.id (cascade delete)
+  type            text
+  provider        text
+  provider_account_id text
+  refresh_token   text, nullable
+  access_token    text, nullable
+  expires_at      integer, nullable
+  token_type      text, nullable
+  scope           text, nullable
+  id_token        text, nullable
+  session_state   text, nullable
+  PK: (provider, provider_account_id)
 
+sessions          (Auth.js standard tables)
+  session_token   text, primary key
+  user_id         uuid, FK → users.id (cascade delete)
+  expires         timestamp
+
+verification_tokens (Auth.js standard tables)
+  identifier      text
+  token           text
+  expires         timestamp
+  PK: (identifier, token)
 
 conversations
-
   id                    uuid, primary key
-  user_id               uuid, foreign key → users.id
+  user_id               uuid, FK → users.id
   title                 text, nullable
-  system_prompt_version text
-  created_at             timestamp
-  updated_at             timestamp
-
-  index:
-    conversations_user_id_idx
-
+  system_prompt_version text, not null
+  created_at            timestamp
+  updated_at            timestamp
+  index: conversations_user_id_idx
 
 messages
-
   id               uuid, primary key
-  conversation_id  uuid, foreign key → conversations.id
-  role             message_role
+  conversation_id  uuid, FK → conversations.id (cascade delete)
+  role             message_role enum (user, assistant, tool)
   content          jsonb
   created_at       timestamp
-
-  index:
-    messages_conversation_id_idx
+  index: messages_conversation_id_idx
 ```
 
 Message roles currently are:
@@ -505,31 +565,25 @@ Database credentials are server-only.
 
 # 8. Authentication and sessions
 
-Authentication is not implemented yet.
+Authentication is **implemented** using Auth.js (NextAuth v5) with GitHub OAuth.
 
-The planned authentication layer is:
-
-```text
-Auth.js
-```
-
-The intended flow is:
+The flow is:
 
 ```text
 Browser
    ↓
-Auth.js
+Auth.js (GitHub OAuth)
    ↓
-Session
+Session (database strategy)
    ↓
 Server-side auth() / session lookup
    ↓
-Current user
+Current user (via lib/auth/current-user.ts)
    ↓
 Database queries scoped by user_id
 ```
 
-The application must distinguish:
+The application distinguishes:
 
 ```text
 authentication
@@ -539,28 +593,39 @@ authorization
 = is this user allowed to access this resource?
 ```
 
-Every conversation and message query must eventually be scoped through the authenticated user's ownership.
+Every conversation and message query is scoped through the authenticated user's ownership.
 
 ### Session storage
 
-The concrete Auth.js session strategy and whether sessions themselves are stored in Postgres will be decided during the authentication phase.
+Auth.js uses the database session strategy with the standard Auth.js tables (`sessions`, `accounts`, `verification_tokens`). Sessions are stored in Postgres via the Drizzle adapter.
 
-The architecture must not assume that the application's `users` table is itself a session store.
+### Current implementation
+
+| Feature | Status | Location |
+|---------|--------|----------|
+| GitHub OAuth provider | ✅ Working | `lib/auth.ts` |
+| Database session strategy | ✅ Working | `lib/auth.ts` |
+| Session callback (user.id) | ✅ Working | `lib/auth.ts` |
+| Custom sign-in page | ✅ Working | `src/app/auth/signin/page.tsx` |
+| Custom error page | ✅ Working | `src/app/auth/error/page.tsx` |
+| `getCurrentUser()` | ✅ Working | `lib/auth/current-user.ts` |
+| `getRequiredCurrentUser()` | ✅ Working | `lib/auth/current-user.ts` |
+| Protected API routes | ✅ Working | All `/api/*` routes use `getRequiredCurrentUser()` |
 
 ---
 
 # 9. Persistence flow
 
-Once authentication and persistence are implemented, `POST /api/chat` will follow this lifecycle:
+`POST /api/chat` follows this lifecycle:
 
 ```text
 Request
    ↓
-Authenticate user
+Authenticate user (getRequiredCurrentUser)
    ↓
-Resolve conversation
+Resolve conversation (existing or create new)
    ↓
-Verify ownership
+Verify ownership (conversation.user_id === user.id)
    ↓
 Persist user message
    ↓
@@ -570,16 +635,18 @@ Run harness
    ↓
 Stream assistant response
    ↓
-Accumulate assistant content
+Accumulate assistant content (onFinish)
    ↓
-Persist assistant message
+Persist assistant message (only on successful completion)
+   ↓
+Update conversation updatedAt
    ↓
 Complete response
 ```
 
 Failures must not result in silently persisted successful assistant messages.
 
-Interrupted/failed streams will be handled explicitly during the reliability phase.
+Interrupted/failed streams are handled: the `onFinish` callback checks `isAborted` and `finishReason === 'error'` before persisting.
 
 ---
 
@@ -631,8 +698,6 @@ When tools are introduced, tool arguments must be validated before execution.
 
 ## Database authorization
 
-Once authentication exists:
-
 ```text
 session.user_id
       ↓
@@ -641,9 +706,11 @@ conversation.user_id
 message.conversation_id
 ```
 
-Every read/write path must enforce ownership.
+Every read/write path enforces ownership.
 
 Knowing a conversation UUID must never be sufficient to access another user's conversation.
+
+All API routes verify ownership via `and(eq(conversations.id, id), eq(conversations.userId, user.id))`.
 
 ---
 
@@ -669,6 +736,7 @@ The separation between:
 src/
 lib/agent/
 lib/ai/
+lib/auth/
 lib/db/
 ```
 
@@ -676,7 +744,7 @@ keeps the server-side domain logic sufficiently isolated that extraction into a 
 
 ---
 
-# ADR-002: Drizzle over Prisma
+## ADR-002: Drizzle over Prisma
 
 ### Context
 
@@ -692,7 +760,7 @@ More explicit schema and query definitions with strong TypeScript integration.
 
 ---
 
-# ADR-003: Vercel AI SDK for model/stream transport
+## ADR-003: Vercel AI SDK for model/stream transport
 
 ### Context
 
@@ -717,7 +785,7 @@ We avoid rebuilding streaming infrastructure while retaining control over the ac
 
 ---
 
-# ADR-004: Neon Postgres over SQLite
+## ADR-004: Neon Postgres over SQLite
 
 ### Context
 
@@ -733,7 +801,7 @@ Real PostgreSQL experience with convenient hosted development environments.
 
 ---
 
-# ADR-005: Provider abstraction with GapGPT as the current provider
+## ADR-005: Provider abstraction with GapGPT as the current provider
 
 ### Context
 
@@ -770,7 +838,7 @@ Vercel AI Gateway
 ```text
 GapGPT
     ↓
-gapgpt-qwen-3.6
+glm-4-flash
 ```
 
 ### Consequence
@@ -783,7 +851,7 @@ Provider expansion is intentionally deferred until there is a real requirement.
 
 ---
 
-# ADR-006: Hand-owned harness orchestration over high-level agent primitive
+## ADR-006: Hand-owned harness orchestration over high-level agent primitive
 
 ### Context
 
@@ -849,21 +917,35 @@ Revisit this decision if future AI SDK versions materially change the trade-off 
 ✅ Agent harness
 ✅ AIClient abstraction
 ✅ Provider factory
-✅ GapGPT adapter
+✅ GapGPT adapter (glm-4-flash)
 ✅ Neon Postgres
 ✅ Drizzle
-✅ Database schema
-✅ Database migrations
+✅ Database schema (users, conversations, messages, Auth.js tables)
+✅ Database migrations (4 applied)
+✅ Authentication (GitHub OAuth via Auth.js)
+✅ Sessions (database strategy)
+✅ Current-user server boundary (getCurrentUser / getRequiredCurrentUser)
+✅ Conversation persistence (create, list, get, delete)
+✅ Message persistence (user + assistant messages)
+✅ Conversation CRUD API
+✅ Authorization (ownership checks on all conversation/message queries)
+✅ Multi-user isolation
+✅ Protected API routes
 
-⏳ Authentication
-⏳ Sessions
-⏳ Current-user server boundary
-⏳ Conversation persistence
-⏳ Message persistence
-⏳ Conversation CRUD
-⏳ Authorization
-⏳ Multi-user isolation
-⏳ Tool calling
+⏳ Sidebar integration (UI exists, needs real data)
+⏳ Conversation list loading from API
+⏳ New Chat → create conversation via API
+⏳ Conversation selection → load messages
+⏳ Search conversations
+⏳ User menu → real session data
+
+🚫 Not needed yet:
+   - Multiple AI providers
+   - Tool calling
+   - RAG
+   - Model routing
+   - File uploads
+   - Billing
 ```
 
 The current system is intentionally **not** designed around:
@@ -882,7 +964,7 @@ Those should only be introduced when a concrete phase or product requirement cal
 
 ---
 
-# 13. Target architecture after Phase 3
+# 13. Target architecture after Phase 2.7 (Chat UI connected to persistence)
 
 ```mermaid
 flowchart LR
@@ -892,6 +974,8 @@ flowchart LR
 
     Frontend
         --> ChatAPI[POST /api/chat]
+        --> ConvoAPI[GET/POST /api/conversations]
+        --> AuthAPI[/api/auth/*]
 
     ChatAPI
         --> Auth[Auth.js]
