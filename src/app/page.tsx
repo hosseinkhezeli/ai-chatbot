@@ -1,6 +1,11 @@
-import { Chat } from '@/components/chat/chat';
 import { AppShell } from '@/components/layout/app-shell';
+import { SWRegistration } from '@/components/pwa/sw-registration';
 
 export default function Page() {
-  return <AppShell />;
+  return (
+    <>
+      <SWRegistration />
+      <AppShell />
+    </>
+  );
 }

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <title>Offline - AI Chatbot</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #ffffff;
+      --fg: #000000;
+      --muted: #71717a;
+      --border: #e4e4e7;
+      --primary: #18181b;
+      --primary-fg: #fafafa;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #09090b;
+        --fg: #fafafa;
+        --muted: #a1a1aa;
+        --border: #27272a;
+        --primary: #fafafa;
+        --primary-fg: #09090b;
+      }
+    }
+
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      line-height: 1.5;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 400px;
+      padding: 2rem;
+    }
+
+    .icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+      opacity: 0.6;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--fg);
+    }
+
+    p {
+      color: var(--muted);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .retry-btn {
+      background: var(--primary);
+      color: var(--primary-fg);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .retry-btn:hover {
+      opacity: 0.8;
+    }
+
+    .retry-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--border);
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-dot.online {
+      background: #22c55e;
+      animation: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M1 1l22 22" stroke-linecap="round"/>
+      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" stroke-linecap="round"/>
+      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" stroke-linecap="round"/>
+      <path d="M10.71 5.05A16 16 0 0 1 22.58 9" stroke-linecap="round"/>
+      <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" stroke-linecap="round"/>
+      <path d="M8.59 16.24a10.93 10.93 0 0 0 5.17 2.39" stroke-linecap="round"/>
+      <path d="M17.43 17.76a10.93 10.93 0 0 0 2.39-5.17" stroke-linecap="round"/>
+      <path d="M13.41 1.44a15.9 15.9 0 0 1 2.88 4.7" stroke-linecap="round"/>
+      <path d="M5.24 19.59a15.89 15.89 0 0 1-2.88-4.7" stroke-linecap="round"/>
+    </svg>
+
+    <h1>You're Offline</h1>
+    <p>No internet connection detected. Please check your network and try again.</p>
+
+    <button class="retry-btn" onclick="window.location.reload()">
+      Try Again
+    </button>
+
+    <div class="status-indicator" id="status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Checking connection...</span>
+    </div>
+  </div>
+
+  <script>
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+
+    function updateOnlineStatus() {
+      if (navigator.onLine) {
+        statusDot.classList.add('online');
+        statusText.textContent = 'Back online! Reloading...';
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        statusDot.classList.remove('online');
+        statusText.textContent = 'Still offline. Waiting for connection...';
+      }
+    }
+
+    // Initial check
+    updateOnlineStatus();
+
+    // Listen for online/offline events
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    // Also try to detect when service worker controls the page
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (navigator.onLine) {
+          window.location.reload();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
