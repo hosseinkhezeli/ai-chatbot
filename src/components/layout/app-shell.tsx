@@ -5,15 +5,52 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Chat } from '@/components/chat/chat';
 
+const ACTIVE_CONVERSATION_KEY = 'activeConversationId';
+
+function getStoredActiveConversationId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(ACTIVE_CONVERSATION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setStoredActiveConversationId(id: string | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (id) {
+      localStorage.setItem(ACTIVE_CONVERSATION_KEY, id);
+    } else {
+      localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
+    }
+  } catch {
+    // Ignore localStorage errors (e.g., private browsing, quota exceeded)
+  }
+}
+
 export function AppShell() {
   // Single source of truth for the active conversation.
   // The sidebar highlights based on it; Chat loads history for it.
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  // Persisted in localStorage to survive page reloads and return visits.
+  // Lazy initializer reads from localStorage during first render (client-only).
+  const [activeConversationId, setActiveConversationIdState] = useState<string | null>(() =>
+    getStoredActiveConversationId()
+  );
+
+  const setActiveConversationId = useCallback(
+    (id: string | null | ((prev: string | null) => string | null)) => {
+      const newId = typeof id === 'function' ? id(activeConversationId) : id;
+      setActiveConversationIdState(newId);
+      setStoredActiveConversationId(newId);
+    },
+    [activeConversationId]
+  );
 
   // If the user deletes the conversation that's currently open, fall back to
   // a fresh chat. Chat's conversationId effect resets messages on null.
   const handleConversationDelete = useCallback((deletedId: string) => {
-    setActiveConversationId((current) => (current === deletedId ? null : current));
+    setActiveConversationId((current: string | null) => (current === deletedId ? null : current));
   }, []);
 
   return (
