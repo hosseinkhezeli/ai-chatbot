@@ -210,15 +210,15 @@ The current UI is intentionally minimal. The backend is fully implemented — no
 
 **Tasks:**
 
-* [ ] Fetch and display conversation list in sidebar from `GET /api/conversations`
-* [ ] Wire New Chat button → `POST /api/conversations` → navigate to new conversation
-* [ ] Click conversation in sidebar → load messages via `GET /api/conversations/:id` → hydrate chat
-* [ ] Delete conversation → `DELETE /api/conversations/:id` → refresh list
+* [x] Fetch and display conversation list in sidebar from `GET /api/conversations`
+* [x] Wire New Chat button → `POST /api/conversations` → navigate to new conversation
+* [x] Click conversation in sidebar → load messages via `GET /api/conversations/:id` → hydrate chat
+* [x] Delete conversation → `DELETE /api/conversations/:id` → refresh list
 * [ ] Add `PATCH /api/conversations/:id` for rename → wire dropdown item
 * [ ] Add search/filter to `GET /api/conversations` → wire search input with debounce
 * [ ] Replace static user menu with real session data (use `useSession` from Auth.js)
-* [ ] Hydrate `useChat` with existing messages when opening a conversation
-* [ ] Handle empty state (no conversations) → show "New Chat" prompt
+* [x] Hydrate `useChat` with existing messages when opening a conversation
+* [x] Handle empty state (no conversations) → show "New Chat" prompt
 
 **Done when:**
 
@@ -429,11 +429,13 @@ Do not build advanced agent features before the application has reliable identit
 ✅ Authorization (ownership checks)
 
 🟡 Phase 2.7 — UI integration (sidebar, conversation list, user menu)
-    ├── Sidebar conversation list (mock data)
-    ├── New Chat button (not wired)
-    ├── Conversation selection (not wired)
+    ├── ✅ Sidebar conversation list (real data from GET /api/conversations)
+    ├── ✅ New Chat button (creates conversation + activates it)
+    ├── ✅ Conversation selection (hydrates chat history via GET /api/conversations/:id)
+    ├── ✅ Chat history hydration + sending into selected conversation
+    ├── ✅ Delete conversation (DELETE /api/conversations/:id wired to UI)
     ├── Search input (not wired)
-    ├── Delete/Rename (not wired)
+    ├── Rename (needs PATCH endpoint + UI)
     └── User menu (static data)
 
 🚫 Not needed yet:

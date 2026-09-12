@@ -1,8 +1,8 @@
 // src/app/api/conversations/[id]/route.ts
 import { getRequiredCurrentUser } from '@/lib/auth/current-user';
 import { db } from '@/db/client';
-import { conversations } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { conversations, messages } from '@/db/schema';
+import { eq, and, asc } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
 
@@ -40,7 +40,20 @@ export async function GET(
       return Response.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    return Response.json({ conversation });
+    // Messages are owned by their conversation, and the conversation is already
+    // proven to belong to this user — so no per-message ownership check is needed.
+    const messageRows = await db
+      .select({
+        id: messages.id,
+        role: messages.role,
+        content: messages.content,
+        createdAt: messages.createdAt,
+      })
+      .from(messages)
+      .where(eq(messages.conversationId, conversation.id))
+      .orderBy(asc(messages.createdAt));
+
+    return Response.json({ conversation, messages: messageRows });
   } catch {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
