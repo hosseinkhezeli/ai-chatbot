@@ -18,6 +18,9 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from '@/components/ui/message-scroller';
+import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useNotifications } from '../pwa/notification-manager';
+import { OfflineIndicator } from '../pwa/offline-indicator';
 
 interface PersistedMessage {
   id: string;
@@ -43,8 +46,56 @@ function toUIMessage(row: PersistedMessage): UIMessage | null {
   };
 }
 
+
+interface QueuedMessage {
+  id: string;
+  text: string;
+}
+
+function generateMessageId() {
+  return `queued-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function queueMessageOffline(message: QueuedMessage) {
+  const swReg = await navigator.serviceWorker?.ready;
+  if (swReg) {
+    swReg.active?.postMessage({
+      type: 'QUEUE_MESSAGE',
+      message: { ...message, api: '/api/chat' },
+    });
+  }
+
+  // Fallback: also store directly via client-side IndexedDB so the
+  // message survives even if background sync is unavailable (iOS).
+  if ('indexedDB' in window) {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open('ai-chatbot-offline', 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('messages')) {
+          db.createObjectStore('messages', { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    const tx = db.transaction('messages', 'readwrite');
+    tx.objectStore('messages').put({
+      ...message,
+      api: '/api/chat',
+      queuedAt: Date.now(),
+    });
+    tx.oncomplete = () => db.close();
+  }
+}
+
+
+
 export function Chat({ conversationId }: { conversationId: string | null }) {
   const [input, setInput] = useState('');
+  const { isOnline } = useOnlineStatus();
+  const { notifyCompletion } = useNotifications();
   const [isHistoryLoading, setIsHistoryLoading] = useState(conversationId !== null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyRetryToken, setHistoryRetryToken] = useState(0);
@@ -53,6 +104,17 @@ export function Chat({ conversationId }: { conversationId: string | null }) {
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
+    onFinish: (event) => {
+      if (!event.isError) {
+        const lastMessage = event.message;
+        const preview =
+          lastMessage?.parts
+            ?.filter((part) => part.type === 'text')
+            .map((part) => part.text)
+            .join(' ') || '';
+        void notifyCompletion(preview);
+      }
+    },
   });
 
   const isLoading = status === 'submitted' || status === 'streaming';
@@ -110,6 +172,20 @@ export function Chat({ conversationId }: { conversationId: string | null }) {
       return;
     }
 
+    if (!isOnline) {
+      const queuedMessage: QueuedMessage = { id: generateMessageId(), text };
+      await queueMessageOffline(queuedMessage);
+      setInput('');
+      return;
+    }
+
+    if (!isOnline) {
+      const queuedMessage: QueuedMessage = { id: generateMessageId(), text };
+      await queueMessageOffline(queuedMessage);
+      setInput('');
+      return;
+    }
+
     setInput('');
 
     await sendMessage(
@@ -120,6 +196,7 @@ export function Chat({ conversationId }: { conversationId: string | null }) {
 
   return (
     <main className="flex h-svh flex-col">
+      <OfflineIndicator />
       <div className="mx-auto flex w-full max-w-4xl min-h-0 flex-1 flex-col px-4">
         <MessageScrollerProvider>
           <MessageScroller className="min-h-0 flex-1">
@@ -253,6 +330,11 @@ export function Chat({ conversationId }: { conversationId: string | null }) {
         </MessageScrollerProvider>
 
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-3xl shrink-0 py-4">
+          {!isOnline && (
+            <p className="mb-2 text-center text-xs text-muted-foreground" role="status">
+              You&apos;re offline — messages will be sent when the connection returns.
+            </p>
+          )}
           <InputGroup>
             <InputGroupTextarea
               value={input}
