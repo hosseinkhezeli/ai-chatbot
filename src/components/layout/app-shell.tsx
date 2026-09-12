@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Chat } from '@/components/chat/chat';
@@ -29,6 +29,16 @@ function setStoredActiveConversationId(id: string | null) {
   }
 }
 
+interface ConversationTitleResponse {
+  conversation: {
+    id: string;
+    title: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+  messages: unknown[];
+}
+
 export function AppShell() {
   // Single source of truth for the active conversation.
   // The sidebar highlights based on it; Chat loads history for it.
@@ -37,12 +47,26 @@ export function AppShell() {
   const [activeConversationId, setActiveConversationIdState] = useState<string | null>(() =>
     getStoredActiveConversationId()
   );
+  const [activeConversationTitle, setActiveConversationTitle] = useState<string | null>(null);
 
   const setActiveConversationId = useCallback(
     (id: string | null | ((prev: string | null) => string | null)) => {
       const newId = typeof id === 'function' ? id(activeConversationId) : id;
       setActiveConversationIdState(newId);
       setStoredActiveConversationId(newId);
+      // Fetch title when conversation changes
+      if (newId) {
+        fetch(`/api/conversations/${newId}`)
+          .then((res) => res.ok ? res.json() : null)
+          .then((data: ConversationTitleResponse | null) => {
+            if (data?.conversation) {
+              setActiveConversationTitle(data.conversation.title);
+            }
+          })
+          .catch(() => setActiveConversationTitle(null));
+      } else {
+        setActiveConversationTitle(null);
+      }
     },
     [activeConversationId]
   );
@@ -64,7 +88,9 @@ export function AppShell() {
         {/* Mobile-only header */}
         <div className="md:hidden flex h-14 shrink-0 items-center border-b bg-background/80 px-4 backdrop-blur-md sticky top-0 z-10">
           <SidebarTrigger className="text-muted-foreground" />
-          <span className="ml-3 text-sm font-medium truncate">New Conversation</span>
+          <span className="ml-3 text-sm font-medium truncate">
+            {activeConversationTitle ?? 'New Conversation'}
+          </span>
         </div>
 
         {/* Desktop-only floating trigger (shows when sidebar is closed) */}

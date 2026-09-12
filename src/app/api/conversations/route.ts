@@ -2,7 +2,7 @@
 import { getRequiredCurrentUser } from '@/lib/auth/current-user';
 import { db } from '@/db/client';
 import { conversations } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, ilike, or, and } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
 
@@ -10,9 +10,22 @@ function isValidTitle(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= 500;
 }
 
-export async function GET(): Promise<Response> {
+function isValidSearchQuery(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= 200;
+}
+export async function GET(req: Request): Promise<Response> {
   try {
     const user = await getRequiredCurrentUser();
+    const url = new URL(req.url);
+    const searchQuery = url.searchParams.get('q');
+
+    const sanitizedQuery = searchQuery?.trim();
+
+    const whereCondition =
+      sanitizedQuery && isValidSearchQuery(sanitizedQuery)
+        ? and(eq(conversations.userId, user.id), ilike(conversations.title, `%${sanitizedQuery}%`))
+        : eq(conversations.userId, user.id);
+
     const userConversations = await db
       .select({
         id: conversations.id,
@@ -21,7 +34,7 @@ export async function GET(): Promise<Response> {
         updatedAt: conversations.updatedAt,
       })
       .from(conversations)
-      .where(eq(conversations.userId, user.id))
+      .where(whereCondition)
       .orderBy(desc(conversations.updatedAt));
 
     return Response.json({ conversations: userConversations });

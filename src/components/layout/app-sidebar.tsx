@@ -1,8 +1,16 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, MessageSquare, MoreHorizontal, Search, LoaderCircle, XCircle } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Plus,
+  MessageSquare,
+  MoreHorizontal,
+  Search,
+  LoaderCircle,
+  XCircle,
+  Edit2,
+} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -45,6 +53,66 @@ interface AppSidebarProps {
   onConversationDeleted: (deletedId: string) => void;
 }
 
+interface RenameMenuItemProps {
+  conversationId: string;
+  currentTitle: string | null;
+  onRename: (conversationId: string, newTitle: string) => void;
+}
+
+function RenameMenuItem({ conversationId, currentTitle, onRename }: RenameMenuItemProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(currentTitle ?? '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    if (editTitle.trim() && editTitle.trim() !== currentTitle) {
+      onRename(conversationId, editTitle.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSave();
+    } else if (event.key === 'Escape') {
+      setEditTitle(currentTitle ?? '');
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <DropdownMenuItem className="p-1" onClick={(e) => e.stopPropagation()}>
+        <input
+          ref={inputRef}
+          type="text"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          className="w-full h-8 px-2 py-1 text-sm border border-input bg-background rounded-md outline-none focus:ring-1 focus:ring-ring"
+          maxLength={500}
+          autoFocus
+        />
+      </DropdownMenuItem>
+    );
+  }
+
+  return (
+    <DropdownMenuItem onClick={() => setIsEditing(true)} className="flex items-center gap-2">
+      <Edit2 className="h-4 w-4" />
+      Rename
+    </DropdownMenuItem>
+  );
+}
+
 export function AppSidebar({
   activeConversationId,
   onConversationSelect,
@@ -54,12 +122,19 @@ export function AppSidebar({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (query: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/conversations');
+      const url = new URL('/api/conversations', window.location.origin);
+      if (query.trim()) {
+        url.searchParams.set('q', query.trim());
+      }
+      const response = await fetch(url.toString());
       if (!response.ok) {
         if (response.status === 401) {
           // Auth error - user will be redirected by middleware
@@ -77,8 +152,27 @@ export function AppSidebar({
   }, []);
 
   useEffect(() => {
-    fetchConversations();
+    fetchConversations('');
   }, [fetchConversations]);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchConversations(debouncedSearchQuery);
+  }, [debouncedSearchQuery, fetchConversations]);
 
   const handleNewChat = async () => {
     if (isCreating) return;
@@ -121,6 +215,31 @@ export function AppSidebar({
       onConversationDeleted(conversationId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete conversation');
+    }
+  };
+
+  const handleRenameConversation = async (conversationId: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to rename conversation');
+      }
+      const data: CreateConversationResponse = await response.json();
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === conversationId
+            ? { ...c, title: data.conversation.title, updatedAt: data.conversation.updatedAt }
+            : c,
+        ),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to rename conversation');
     }
   };
 
@@ -206,7 +325,7 @@ export function AppSidebar({
               variant="ghost"
               size="sm"
               className="mt-2"
-              onClick={fetchConversations}
+              onClick={() => fetchConversations(searchQuery)}
             >
               Retry
             </Button>
@@ -234,9 +353,7 @@ export function AppSidebar({
                       onClick={() => handleConversationClick(conversation.id)}
                     >
                       <MessageSquare className="h-4 w-4 text-muted-foreground/70" />
-                      <span className="truncate">
-                        {conversation.title ?? 'Untitled'}
-                      </span>
+                      <span className="truncate">{conversation.title ?? 'Untitled'}</span>
                     </SidebarMenuButton>
 
                     {/* Overflow menu visible on hover/focus */}
@@ -245,7 +362,11 @@ export function AppSidebar({
                         <MoreHorizontal className="h-4 w-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side="right" align="start">
-                        <DropdownMenuItem disabled>Rename</DropdownMenuItem>
+                        <RenameMenuItem
+                          conversationId={conversation.id}
+                          currentTitle={conversation.title}
+                          onRename={handleRenameConversation}
+                        />
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => handleDeleteConversation(conversation.id)}
@@ -258,8 +379,9 @@ export function AppSidebar({
                 ))}
               </SidebarMenu>
             </SidebarGroup>
-          )))}
-        </SidebarContent>
+          ))
+        )}
+      </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-border/50">
         <UserMenu />

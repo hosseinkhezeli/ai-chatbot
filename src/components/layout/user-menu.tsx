@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronsUpDown, LogOut, Settings, Sparkles } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -14,6 +15,17 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 
 export function UserMenu() {
+  const { data: session, status } = useSession() ?? {};
+
+  const userName = session?.user?.name ?? 'Unknown User';
+  const userEmail = session?.user?.email ?? 'unknown@example.com';
+  const initials = userName
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -27,11 +39,13 @@ export function UserMenu() {
             }
           >
             <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src="" alt="User" />
-              <AvatarFallback className="rounded-lg bg-primary/10 text-primary">JD</AvatarFallback>
+              <AvatarImage src={session?.user?.image ?? ''} alt={userName} />
+              <AvatarFallback className="rounded-lg bg-primary/10 text-primary">
+                {initials}
+              </AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">Jane Doe</span>
+              <span className="truncate font-medium">{userName}</span>
               <span className="truncate text-xs text-muted-foreground">Pro Plan</span>
             </div>
             <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
@@ -40,11 +54,12 @@ export function UserMenu() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg">JD</AvatarFallback>
+                  <AvatarImage src={session?.user?.image ?? ''} alt={userName} />
+                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Jane Doe</span>
-                  <span className="truncate text-xs text-muted-foreground">jane@example.com</span>
+                  <span className="truncate font-medium">{userName}</span>
+                  <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -63,7 +78,7 @@ export function UserMenu() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
               <LogOut className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>
