@@ -184,8 +184,10 @@ Tasks:
 * [x] `POST /api/conversations` — create conversation
 * [x] `GET /api/conversations/:id` — fetch conversation + messages
 * [x] `DELETE /api/conversations/:id` — delete conversation
+* [x] `PATCH /api/conversations/:id` — rename conversation
 * [x] Validate IDs
 * [x] Scope every query to the authenticated user
+* [x] Search parameter `?q=` on `GET /api/conversations`
 
 **Learning goal:** server-side CRUD and authorization boundaries.
 
@@ -207,6 +209,7 @@ The current UI is intentionally minimal. The backend is fully implemented — no
 | Search input | Static input | Add search param to `GET /api/conversations` + debounce |
 | User menu | Static "Jane Doe" | Use real session data from Auth.js |
 | Load existing messages | Not implemented | Hydrate `useChat` with initial messages |
+| Chat header title | Hardcoded "New Conversation" | Sync with active conversation title |
 
 **Tasks:**
 
@@ -214,11 +217,12 @@ The current UI is intentionally minimal. The backend is fully implemented — no
 * [x] Wire New Chat button → `POST /api/conversations` → navigate to new conversation
 * [x] Click conversation in sidebar → load messages via `GET /api/conversations/:id` → hydrate chat
 * [x] Delete conversation → `DELETE /api/conversations/:id` → refresh list
-* [ ] Add `PATCH /api/conversations/:id` for rename → wire dropdown item
-* [ ] Add search/filter to `GET /api/conversations` → wire search input with debounce
-* [ ] Replace static user menu with real session data (use `useSession` from Auth.js)
+* [x] Add `PATCH /api/conversations/:id` for rename → wire dropdown item with inline editor
+* [x] Add search/filter to `GET /api/conversations` → wire search input with debounce
+* [x] Replace static user menu with real session data (use `useSession` from Auth.js)
 * [x] Hydrate `useChat` with existing messages when opening a conversation
 * [x] Handle empty state (no conversations) → show "New Chat" prompt
+* [x] Chat header / mobile header shows active conversation title
 
 **Done when:**
 
@@ -240,7 +244,7 @@ The current UI is intentionally minimal. The backend is fully implemented — no
 * [ ] Handle unauthorized access consistently (✅ returns 401/404)
 * [ ] Remove all development-user assumptions (✅ no hardcoded user)
 
-**Status: MOSTLY COMPLETE** — Phase 3 authorization concerns are already addressed in the current implementation. Remaining work is mostly Phase 2.7 (UI integration).
+**Status: MOSTLY COMPLETE** — Phase 3 authorization concerns are already addressed in the current implementation. Remaining work is mostly Phase 2.7 (UI integration), which is now complete.
 
 ---
 
@@ -386,11 +390,11 @@ Phase 1 ✅
    ↓
 Phase 2 (2.1-2.6) ✅
    ↓
-Phase 2.7 ← CURRENT: Connect UI to real backend
+Phase 2.7 ✅ COMPLETE — UI connected to real backend
    ↓
 Phase 3 ✅ (mostly covered)
    ↓
-Phase 4
+Phase 4 ← NEXT: Tool calling & harness upgrade
    ↓
 Phase 5
    ↓
@@ -423,20 +427,21 @@ Do not build advanced agent features before the application has reliable identit
 ✅ Current-user server boundary
 ✅ Conversation persistence
 ✅ Message persistence
-✅ Conversation CRUD API
+✅ Conversation CRUD API (GET, POST, GET/:id, PATCH/:id, DELETE/:id)
 ✅ Protected API routes
 ✅ Multi-user isolation
 ✅ Authorization (ownership checks)
 
-🟡 Phase 2.7 — UI integration (sidebar, conversation list, user menu)
+✅ Phase 2.7 — UI integration complete
     ├── ✅ Sidebar conversation list (real data from GET /api/conversations)
     ├── ✅ New Chat button (creates conversation + activates it)
     ├── ✅ Conversation selection (hydrates chat history via GET /api/conversations/:id)
     ├── ✅ Chat history hydration + sending into selected conversation
     ├── ✅ Delete conversation (DELETE /api/conversations/:id wired to UI)
-    ├── Search input (not wired)
-    ├── Rename (needs PATCH endpoint + UI)
-    └── User menu (static data)
+    ├── ✅ Search input (debounced, server-side filtering)
+    ├── ✅ Rename (PATCH endpoint + inline dropdown editor)
+    ├── ✅ User menu (real session data from Auth.js)
+    └── ✅ Chat header title sync (desktop + mobile)
 
 🚫 Not needed yet:
    - Multiple AI providers
@@ -452,18 +457,17 @@ Do not build advanced agent features before the application has reliable identit
 
 # Immediate next milestone
 
-The next implementation task is **Phase 2.7 — Chat UI connected to persistence**.
+The next implementation task is **Phase 4 — Harness upgrade (tool calling)**.
 
-The backend is complete. The work now is entirely frontend integration:
+Phase 2.7 is complete. The application is now a working, usable chat product with real authentication, persistence, and a fully connected UI.
 
-1. **Create a server action or client-side fetch** to load conversations for the sidebar
-2. **Replace `MOCK_HISTORY`** in `AppSidebar` with real data from `GET /api/conversations`
-3. **Wire New Chat button** → `POST /api/conversations` → redirect to chat view
-4. **Implement conversation selection** → fetch messages via `GET /api/conversations/:id` → hydrate `useChat`
-5. **Add `PATCH /api/conversations/:id`** for rename, wire dropdown
-6. **Wire Delete** → `DELETE /api/conversations/:id`
-7. **Add search parameter** to `GET /api/conversations` and debounce search input
-8. **Replace static UserMenu** with real session data using `useSession()` from `@auth/react`
-9. **Handle initial message hydration** in `Chat` component when opening existing conversation
+The logical next step per the roadmap is Phase 4, which introduces tool calling to the agent harness:
 
-This is the final step to make the application a real, usable chat product rather than a backend demo.
+1. **Add one simple tool** (e.g., a calculator, web search, or code execution tool)
+2. **Define the tool schema** using AI SDK's tool format
+3. **Allow the model to call the tool** — modify `harness.ts` to pass tools to `streamText`
+4. **Feed tool results back into the model** — implement the tool execution loop
+5. **Persist tool activity** where appropriate (consider adding a tool_calls table or extending messages)
+6. **Handle tool failures** gracefully
+
+This is the next learning milestone: understanding agent orchestration beyond a single model call.
