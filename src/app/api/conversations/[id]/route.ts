@@ -114,7 +114,7 @@ export async function PATCH(
     }
 
     const title = (body as Record<string, unknown>).title;
-    if (title !== undefined && !isValidTitle(title)) {
+    if (title !== undefined && title !== null && !isValidTitle(title)) {
       return Response.json({ error: 'Title must be a non-empty string up to 500 characters' }, { status: 400 });
     }
 
