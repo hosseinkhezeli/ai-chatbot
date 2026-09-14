@@ -1,185 +1,356 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 
-export function SWRegistration() {
-  // Derived during render instead of set from an effect: whether the browser
-  // supports service workers is knowable up front, not something we "learn".
-  const [swSupported] = useState(
-    () => typeof navigator !== 'undefined' && 'serviceWorker' in navigator,
+function isServiceWorkerSupported() {
+  return typeof window !== 'undefined' && 'serviceWorker' in navigator;
+}
+
+interface UpdateBannerProps {
+  onUpdate: () => void;
+  onDismiss: () => void;
+}
+
+function UpdateBanner({ onUpdate, onDismiss }: UpdateBannerProps) {
+  return (
+    <div
+      className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96"
+      role="alert"
+      aria-live="polite"
+    >
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-4 shadow-lg">
+        <svg
+          className="h-5 w-5 shrink-0 text-primary"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+          />
+        </svg>
+
+        <span className="flex-1 text-sm">A new version is available.</span>
+
+        <button
+          type="button"
+          onClick={onUpdate}
+          className="shrink-0 rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Update
+        </button>
+
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="shrink-0 p-1 text-muted-foreground hover:text-foreground"
+          aria-label="Dismiss update"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
   );
-  const [updateAvailable, setUpdateAvailable] = useState(false);
+}
+
+interface InstallBannerProps {
+  onInstall: () => void;
+  onDismiss: () => void;
+}
+
+function InstallBanner({ onInstall, onDismiss }: InstallBannerProps) {
+  return (
+    <div
+      className="fixed bottom-4 left-4 right-4 z-40 md:left-auto md:right-4 md:w-96"
+      role="dialog"
+      aria-label="Install app"
+    >
+      <div className="rounded-lg border border-border bg-background p-4 shadow-lg">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <svg
+              className="h-5 w-5 text-primary"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-medium">Install AI Chatbot</h3>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Add to home screen for faster access and offline support.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={onInstall}
+            className="flex-1 rounded bg-primary px-3 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Install
+          </button>
+
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
+          >
+            Not Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SWRegistration() {
   const { isInstalled, isInstallable, install, dismiss, hasPrompted } = usePWAInstall();
+
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  // Register service worker
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+
+  /*
+   * Service worker lifecycle.
+   *
+   * IMPORTANT:
+   * Never register the service worker during development.
+   * Next.js/Turbopack development chunks must not be
+   * intercepted by a persistent service worker cache.
+   */
   useEffect(() => {
-    if (!swSupported) return;
-
-    const registerSW = async () => {
-      try {
-        const registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/',
-        });
-
-        // Handle updates
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                setUpdateAvailable(true);
-              }
-            });
-          }
-        });
-
-        // Listen for messages from SW
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data.type === 'SYNC_SUCCESS') {
-            console.log('[PWA] Background sync succeeded for message:', event.data.messageId);
-          }
-        });
-      } catch (error) {
-        console.error('[PWA] Service Worker registration failed:', error);
-      }
-    };
-
-    // Register after page load to not block initial render
-    if (document.readyState === 'complete') {
-      void registerSW();
+    if (process.env.NODE_ENV !== 'production' || !isServiceWorkerSupported()) {
       return;
     }
 
-    const onLoad = () => void registerSW();
-    window.addEventListener('load', onLoad, { once: true });
-    return () => window.removeEventListener('load', onLoad);
-  }, [swSupported]);
+    let cancelled = false;
+    let updateFoundCleanup: (() => void) | undefined;
 
-  // Reload exactly once when the new SW takes control, so the page's JS
-  // matches the cache the replacement SW is now serving.
+    async function registerServiceWorker() {
+      try {
+        const swRegistration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setRegistration(swRegistration);
+
+        const handleUpdateFound = () => {
+          const newWorker = swRegistration.installing;
+
+          if (!newWorker) {
+            return;
+          }
+
+          const handleStateChange = () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              setUpdateAvailable(true);
+            }
+          };
+
+          newWorker.addEventListener('statechange', handleStateChange);
+
+          updateFoundCleanup = () => {
+            newWorker.removeEventListener('statechange', handleStateChange);
+          };
+        };
+
+        swRegistration.addEventListener('updatefound', handleUpdateFound);
+
+        /*
+         * The worker may already be waiting when
+         * registration resolves, particularly after
+         * a browser restart.
+         */
+        if (swRegistration.waiting) {
+          setUpdateAvailable(true);
+        }
+      } catch (error) {
+        console.error('[PWA] Service Worker registration failed:', error);
+      }
+    }
+
+    if (document.readyState === 'complete') {
+      void registerServiceWorker();
+    } else {
+      const handleLoad = () => {
+        void registerServiceWorker();
+      };
+
+      window.addEventListener('load', handleLoad, {
+        once: true,
+      });
+
+      return () => {
+        cancelled = true;
+        updateFoundCleanup?.();
+        window.removeEventListener('load', handleLoad);
+      };
+    }
+
+    return () => {
+      cancelled = true;
+      updateFoundCleanup?.();
+    };
+  }, []);
+
+  /*
+   * Listen for messages from the service worker.
+   */
   useEffect(() => {
-    if (!swSupported) return;
+    if (process.env.NODE_ENV !== 'production' || !isServiceWorkerSupported()) {
+      return;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'SYNC_SUCCESS') {
+        return;
+      }
+
+      console.debug('[PWA] Background sync succeeded:', event.data.messageId);
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  /*
+   * Reload once when the new worker takes control.
+   */
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' || !isServiceWorkerSupported()) {
+      return;
+    }
 
     let refreshing = false;
+
     const handleControllerChange = () => {
-      if (refreshing) return;
+      if (refreshing) {
+        return;
+      }
+
       refreshing = true;
       window.location.reload();
     };
 
     navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-    return () =>
+
+    return () => {
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
-  }, [swSupported]);
+    };
+  }, []);
 
-  // Show install banner after the user has engaged with the chat a bit.
-  // Storage is read inside the effect (not during render), and the flag is
-  // only set from the timer the effect owns.
+  /*
+   * Show install prompt after at least two chat messages.
+   *
+   * This remains available in development because it only
+   * controls the install UI. The actual service worker
+   * registration above is production-only.
+   */
   useEffect(() => {
-    if (isInstalled || !isInstallable || hasPrompted) return;
+    if (isInstalled || !isInstallable || hasPrompted) {
+      setShowInstallBanner(false);
+      return;
+    }
 
-    const messageCount = Number.parseInt(localStorage.getItem('chat-message-count') ?? '0', 10);
-    if (messageCount < 2) return;
+    const messageCount = Number.parseInt(
+      window.localStorage.getItem('chat-message-count') ?? '0',
+      10,
+    );
 
-    const timer = setTimeout(() => {
+    if (messageCount < 2) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
       setShowInstallBanner(true);
     }, 5000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [isInstalled, isInstallable, hasPrompted]);
 
-  const handleInstall = async () => {
+  const handleInstall = useCallback(async () => {
     const success = await install();
+
     if (success) {
       setShowInstallBanner(false);
     }
-  };
+  }, [install]);
 
-  const handleDismiss = () => {
+  const handleDismissInstall = useCallback(() => {
     dismiss();
     setShowInstallBanner(false);
-  };
+  }, [dismiss]);
 
-  const handleUpdate = () => {
-    navigator.serviceWorker.ready.then((registration) => {
-      registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+  const handleUpdate = useCallback(() => {
+    const waitingWorker = registration?.waiting;
+
+    if (!waitingWorker) {
+      setUpdateAvailable(false);
+      return;
+    }
+
+    waitingWorker.postMessage({
+      type: 'SKIP_WAITING',
     });
-  };
+  }, [registration]);
 
-  if (!swSupported) return null;
+  const handleDismissUpdate = useCallback(() => {
+    setUpdateAvailable(false);
+  }, []);
+
+  if (!isServiceWorkerSupported()) {
+    return null;
+  }
 
   return (
     <>
-      {/* Update Available Banner */}
-      {updateAvailable && (
-        <div
-          className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50"
-          role="alert"
-          aria-live="polite"
-        >
-          <div className="bg-background border border-border shadow-lg rounded-lg p-4 flex items-center gap-3">
-            <svg className="h-5 w-5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span className="text-sm flex-1">A new version is available.</span>
-            <button
-              onClick={handleUpdate}
-              className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex-shrink-0"
-            >
-              Update
-            </button>
-            <button
-              onClick={() => setUpdateAvailable(false)}
-              className="p-1 text-muted-foreground hover:text-foreground flex-shrink-0"
-              aria-label="Dismiss"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      {updateAvailable && <UpdateBanner onUpdate={handleUpdate} onDismiss={handleDismissUpdate} />}
 
-      {/* Install Banner */}
       {showInstallBanner && !isInstalled && (
-        <div
-          className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-40"
-          role="dialog"
-          aria-label="Install app"
-        >
-          <div className="bg-background border border-border shadow-lg rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium">Install AI Chatbot</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Add to home screen for faster access and offline support.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleInstall}
-                className="flex-1 px-3 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-              >
-                Install
-              </button>
-              <button
-                onClick={handleDismiss}
-                className="flex-1 px-3 py-2 text-sm border border-border bg-background rounded hover:bg-muted transition-colors"
-              >
-                Not Now
-              </button>
-            </div>
-          </div>
-        </div>
+        <InstallBanner onInstall={handleInstall} onDismiss={handleDismissInstall} />
       )}
     </>
   );

@@ -45,6 +45,7 @@ export async function GET(req: Request): Promise<Response> {
 
 export async function POST(req: Request): Promise<Response> {
   let user;
+
   try {
     user = await getRequiredCurrentUser();
   } catch {
@@ -52,19 +53,26 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   let body: unknown;
+
   try {
     body = await req.json();
   } catch {
     return Response.json({ error: 'Request body must be valid JSON' }, { status: 400 });
   }
 
-  if (typeof body !== 'object' || body === null) {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return Response.json({ error: 'Request body must be an object' }, { status: 400 });
   }
 
   const title = (body as Record<string, unknown>).title;
-  if (title !== undefined && !isValidTitle(title)) {
-    return Response.json({ error: 'Title must be a non-empty string up to 500 characters' }, { status: 400 });
+
+  if (title !== undefined && title !== null && !isValidTitle(title)) {
+    return Response.json(
+      {
+        error: 'Title must be a non-empty string up to 500 characters',
+      },
+      { status: 400 },
+    );
   }
 
   try {
@@ -85,6 +93,7 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ conversation }, { status: 201 });
   } catch (error) {
     console.error('Failed to create conversation:', error);
+
     return Response.json({ error: 'Failed to create conversation' }, { status: 500 });
   }
 }
