@@ -325,11 +325,13 @@ final response
 
 ### Harness testing
 
-Close the currently known test gaps:
+Test infrastructure landed 2026-09-14 (branch `testing/test-infrastructure`): Vitest unit + integration suites (65 passing, provider boundary always mocked — never live GapGPT) and Playwright E2E scaffolding. See `docs/DEVELOPMENT_STATE.md` for what's covered.
+
+Remaining from the original list — these need a real (or realistically faked) stream, so they're still open:
 
 * [ ] Test cancellation against a real streaming request
 * [ ] Test output-token limits against a sufficiently long response
-* [ ] Test provider failures
+* [x] Test provider failures (`tests/integration/chat.test.ts` — harness-failure → 500; `tests/unit/ai/adapters/gapgpt.test.ts` — missing API key, unsupported model)
 * [ ] Test interrupted streams
 * [ ] Test persistence when streaming fails halfway through
 
@@ -431,6 +433,7 @@ Do not build advanced agent features before the application has reliable identit
 ✅ Protected API routes
 ✅ Multi-user isolation
 ✅ Authorization (ownership checks)
+✅ Automated test infrastructure (Vitest unit + integration, Playwright E2E scaffolding)
 
 ✅ Phase 2.7 — UI integration complete
     ├── ✅ Sidebar conversation list (real data from GET /api/conversations)
