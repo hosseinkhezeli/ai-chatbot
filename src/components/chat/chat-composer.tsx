@@ -3,6 +3,7 @@
 import { ArrowUpIcon, LoaderCircleIcon, PaperclipIcon } from 'lucide-react';
 
 import { InputGroup, InputGroupButton, InputGroupTextarea } from '@/components/ui/input-group';
+import { fa } from '@/lib/i18n/fa';
 
 interface ChatComposerProps {
   value: string;
@@ -48,7 +49,7 @@ export function ChatComposer({
     >
       {!isOnline && (
         <p className="mb-2 text-center text-xs text-muted-foreground" role="status">
-          You&apos;re offline — messages will be sent when the connection returns.
+          {fa.chat.offlineComposer}
         </p>
       )}
 
@@ -57,11 +58,12 @@ export function ChatComposer({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type here..."
+          placeholder={fa.chat.placeholder}
           rows={5}
           disabled={disabled}
+          dir="auto"
           className="min-h-12  resize-none max-h-[40svh] no-scrollbar"
-          aria-label="Message"
+          aria-label={fa.chat.ariaMessage}
           cols={33}
         />
 
@@ -70,7 +72,7 @@ export function ChatComposer({
           size="icon-sm"
           variant="ghost"
           disabled={isLoading}
-          aria-label="Attach file"
+          aria-label={fa.chat.ariaAttach}
         >
           <PaperclipIcon />
         </InputGroupButton>
@@ -80,8 +82,8 @@ export function ChatComposer({
           size="icon-sm"
           variant="default"
           disabled={!value.trim() || disabled}
-          aria-label="Send message"
-          className={'mr-2'}
+          aria-label={fa.chat.ariaSend}
+          className={'me-2'}
         >
           {isLoading ? <LoaderCircleIcon className="animate-spin" /> : <ArrowUpIcon />}
         </InputGroupButton>

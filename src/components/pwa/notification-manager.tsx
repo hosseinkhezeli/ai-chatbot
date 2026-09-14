@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+import { fa } from '@/lib/i18n/fa';
+
 interface NotificationOptions {
   title: string;
   body: string;
@@ -89,8 +91,8 @@ export function useNotifications() {
           // from the TS DOM lib's NotificationOptions type
           vibrate: [100, 50, 100],
           actions: [
-            { action: 'open', title: 'Open' },
-            { action: 'dismiss', title: 'Dismiss' },
+            { action: 'open', title: fa.pwa.notificationOpen },
+            { action: 'dismiss', title: fa.pwa.notificationDismiss },
           ],
         } as unknown as ServiceWorkerNotificationOptions);
         return true;
@@ -128,7 +130,7 @@ export function useNotifications() {
     }
 
     return showNotification({
-      title: 'AI Response Ready',
+      title: fa.pwa.responseReadyTitle,
       body: preview.length > 100 ? preview.slice(0, 100) + '…' : preview,
       tag: 'chat-completion',
       data: { conversationId, url: '/' },

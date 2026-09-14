@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { cn } from '@/lib/utils';
+import { fa } from '@/lib/i18n/fa';
 
 interface OfflineIndicatorProps {
   className?: string;
@@ -49,7 +50,7 @@ export function OfflineIndicator({ className, position = 'top' }: OfflineIndicat
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             <span className="text-sm font-medium">
-              You&apos;re offline. Changes will sync when reconnected.
+              {fa.pwa.offlineBanner}
             </span>
           </>
         ) : (
@@ -57,7 +58,7 @@ export function OfflineIndicator({ className, position = 'top' }: OfflineIndicat
             <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-sm font-medium">Back online</span>
+            <span className="text-sm font-medium">{fa.pwa.backOnline}</span>
           </>
         )}
       </div>

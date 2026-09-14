@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { fa } from '@/lib/i18n/fa';
 
 function getInitials(name: string): string {
   return name
@@ -45,13 +46,17 @@ function UserIdentity({ name, email, image, showEmail = true }: UserIdentityProp
         </AvatarFallback>
       </Avatar>
 
-      <div className="grid flex-1 text-left text-sm leading-tight">
+      <div className="grid flex-1 text-start text-sm leading-tight">
         <span className="truncate font-medium">{name}</span>
 
         {showEmail ? (
-          <span className="truncate text-xs text-muted-foreground">{email ?? 'No email'}</span>
+          /* Email addresses are LTR content — force the run so bidi doesn't
+             move the "@" or domain to the wrong end in an RTL paragraph. */
+          <span dir="ltr" className="truncate text-xs text-muted-foreground">
+            {email ?? fa.userMenu.noEmail}
+          </span>
         ) : (
-          <span className="truncate text-xs text-muted-foreground">Pro Plan</span>
+          <span className="truncate text-xs text-muted-foreground">{fa.userMenu.proPlan}</span>
         )}
       </div>
     </>
@@ -68,12 +73,12 @@ export function UserMenu() {
           <SidebarMenuButton size="lg" disabled className="opacity-70">
             <div className="size-8 animate-pulse rounded-lg bg-muted" />
 
-            <div className="grid flex-1 gap-1.5 text-left">
+            <div className="grid flex-1 gap-1.5 text-start">
               <div className="h-4 w-24 animate-pulse rounded bg-muted" />
               <div className="h-3 w-16 animate-pulse rounded bg-muted" />
             </div>
 
-            <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+            <ChevronsUpDown className="ms-auto size-4 text-muted-foreground" />
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -81,7 +86,7 @@ export function UserMenu() {
   }
 
   const user = session?.user;
-  const userName = user?.name?.trim() || 'User';
+  const userName = user?.name?.trim() || fa.userMenu.user;
 
   async function handleSignOut() {
     await signOut({
@@ -103,13 +108,13 @@ export function UserMenu() {
           >
             <UserIdentity name={userName} image={user?.image} email={user?.email} />
 
-            <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+            <ChevronsUpDown className="ms-auto size-4 text-muted-foreground" />
           </DropdownMenuTrigger>
 
           <DropdownMenuContent className="w-56 rounded-xl" align="end" side="top" sideOffset={8}>
             <DropdownMenuGroup>
               <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <div className="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
                   <UserIdentity name={userName} email={user?.email} image={user?.image} showEmail />
                 </div>
               </DropdownMenuLabel>
@@ -136,8 +141,8 @@ export function UserMenu() {
             {/* <DropdownMenuSeparator /> */}
 
             <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Log out
+              <LogOut className="me-2 h-4 w-4" />
+              {fa.userMenu.logOut}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

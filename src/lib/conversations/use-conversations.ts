@@ -9,6 +9,7 @@ import {
   renameConversation,
 } from './conversations-api';
 import type { Conversation } from './conversations.types';
+import { fa } from '@/lib/i18n/fa';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -52,7 +53,15 @@ export function useConversations(): UseConversationsResult {
             return;
           }
 
-          setError(error instanceof Error ? error.message : 'Failed to load conversations');
+          // getConversations() already throws a Persian catalog message (e.g. the
+          // 401 case); a raw TypeError ("Failed to fetch") is a network-level
+          // failure we log for debugging and replace with the generic string.
+          if (error instanceof Error && error.name !== 'TypeError') {
+            setError(error.message);
+          } else {
+            console.error('Failed to load conversations:', error);
+            setError(fa.errors.loadConversations);
+          }
         } finally {
           if (!controller.signal.aborted) {
             setIsLoading(false);
@@ -83,7 +92,10 @@ export function useConversations(): UseConversationsResult {
 
       return conversation;
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to create conversation');
+      // A network-level failure (fetch throwing "Failed to fetch") would leak a
+      // raw browser message via error.message — always show the catalog string.
+      console.error('Failed to create conversation:', error);
+      setError(fa.errors.createConversation);
 
       return null;
     } finally {
@@ -103,7 +115,8 @@ export function useConversations(): UseConversationsResult {
 
       return true;
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to delete conversation');
+      console.error('Failed to delete conversation:', error);
+      setError(fa.errors.deleteConversation);
 
       return false;
     }
@@ -125,7 +138,8 @@ export function useConversations(): UseConversationsResult {
         ),
       );
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to rename conversation');
+      console.error('Failed to rename conversation:', error);
+      setError(fa.errors.renameConversation);
     }
   }, []);
 

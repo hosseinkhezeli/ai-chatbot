@@ -10,6 +10,7 @@ import { useNotifications } from '@/components/pwa/notification-manager';
 import { OfflineIndicator } from '@/components/pwa/offline-indicator';
 
 import type { EnsuredConversation } from '@/lib/conversations/use-active-conversation';
+import { fa } from '@/lib/i18n/fa';
 
 import { ChatComposer } from './chat-composer';
 import { ChatMessages } from './chat-messages';
@@ -182,7 +183,7 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to load conversation history');
+          throw new Error(fa.errors.loadHistory);
         }
 
         const data: ConversationMessagesResponse = await response.json();
@@ -203,9 +204,9 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
           return;
         }
 
-        setHistoryError(
-          error instanceof Error ? error.message : 'Failed to load conversation history',
-        );
+        // Keep the technical detail in the console; the UI only shows fa.errors.loadHistory.
+        console.error('Failed to load conversation history:', error);
+        setHistoryError(fa.errors.loadHistory);
       } finally {
         if (!controller.signal.aborted) {
           setIsHistoryLoading(false);

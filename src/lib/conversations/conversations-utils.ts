@@ -1,4 +1,5 @@
 import type { Conversation } from './conversations.types';
+import { fa } from '@/lib/i18n/fa';
 
 export interface ConversationGroup {
   group: string;
@@ -8,6 +9,19 @@ export interface ConversationGroup {
 function isSameDay(dateA: Date, dateB: Date) {
   return dateA.toDateString() === dateB.toDateString();
 }
+
+/*
+ * Intl's 'fa-IR-u-ca-persian' extension asks V8/ICU (bundled with every modern
+ * browser) to render the date on the Persian (Jalali) calendar with Persian
+ * digits and month names — no external calendar library, which the task
+ * explicitly rules out unless genuinely needed. Presentation-layer only:
+ * `dateString` itself (and the DB column behind it) stays an ISO timestamp.
+ */
+const persianDateFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+});
 
 export function getConversationGroupLabel(dateString: string): string {
   const date = new Date(dateString);
@@ -20,22 +34,18 @@ export function getConversationGroupLabel(dateString: string): string {
   previousSevenDays.setDate(today.getDate() - 7);
 
   if (isSameDay(date, today)) {
-    return 'Today';
+    return fa.groups.today;
   }
 
   if (isSameDay(date, yesterday)) {
-    return 'Yesterday';
+    return fa.groups.yesterday;
   }
 
   if (date > previousSevenDays) {
-    return 'Previous 7 Days';
+    return fa.groups.previous7Days;
   }
 
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return persianDateFormatter.format(date);
 }
 
 export function groupConversations(conversations: Conversation[]): ConversationGroup[] {

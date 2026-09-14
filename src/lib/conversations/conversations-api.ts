@@ -1,3 +1,5 @@
+import { fa } from '@/lib/i18n/fa';
+
 import type {
   Conversation,
   ConversationsResponse,
@@ -17,10 +19,10 @@ export async function getConversations(query = ''): Promise<Conversation[]> {
 
   if (!response.ok) {
     if (response.status === 401) {
-      throw new Error('Unauthorized');
+      throw new Error(fa.errors.unauthorized);
     }
 
-    throw new Error('Failed to load conversations');
+    throw new Error(fa.errors.loadConversations);
   }
 
   const data: ConversationsResponse = await response.json();
@@ -38,7 +40,7 @@ export async function createConversation(): Promise<Conversation> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to create conversation');
+    throw new Error(fa.errors.createConversation);
   }
 
   const data: ConversationResponse = await response.json();
@@ -52,7 +54,7 @@ export async function deleteConversation(conversationId: string): Promise<void> 
   });
 
   if (!response.ok) {
-    throw new Error('Failed to delete conversation');
+    throw new Error(fa.errors.deleteConversation);
   }
 }
 
@@ -71,7 +73,7 @@ export async function renameConversation(
   });
 
   if (!response.ok) {
-    throw new Error('Failed to rename conversation');
+    throw new Error(fa.errors.renameConversation);
   }
 
   const data: ConversationResponse = await response.json();
@@ -84,16 +86,22 @@ export async function getConversation(
   signal?: AbortSignal,
 ): Promise<Conversation> {
   if (conversationId === null) {
-    throw new Error('Invalid Conversation Id');
+    throw new Error(fa.errors.loadHistory);
   }
+
   const response = await fetch(`/api/conversations/${conversationId}`, { signal });
 
   if (response.status === 404) {
-    throw new Error('NotFoundError');
+    // use-active-conversation checks `error.name` to detect a deleted/invalid
+    // conversation — `name`, not `message`, is what identifies this case.
+    const error = new Error(fa.errors.loadHistory);
+    error.name = 'NotFoundError';
+
+    throw error;
   }
 
   if (!response.ok) {
-    throw new Error('Failed to load conversation');
+    throw new Error(fa.errors.loadHistory);
   }
 
   const data: {

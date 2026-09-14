@@ -123,6 +123,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Persian script needs more vertical room than Latin — diacritic-free
+       glyphs still stack tall with Persian ZWNJ joiners, and 1.5 (Tailwind's
+       default leading) visibly crowds Vazirmatn at UI sizes. */
+    line-height: 1.75;
   }
   html {
     @apply font-sans;

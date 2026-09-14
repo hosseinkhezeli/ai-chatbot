@@ -7,6 +7,7 @@ import { AppSidebar } from '@/components/layout/app-sidebar/app-sidebar';
 import { Chat } from '@/components/chat/chat';
 
 import { useActiveConversation } from '@/lib/conversations/use-active-conversation';
+import { fa } from '@/lib/i18n/fa';
 
 function AppContent() {
   const {
@@ -34,12 +35,12 @@ function AppContent() {
         <div className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b bg-background/80 px-4 backdrop-blur-md md:hidden">
           <SidebarTrigger className="text-muted-foreground" />
 
-          <span className="ml-3 truncate text-sm font-medium">
-            {activeConversationTitle ?? 'New Conversation'}
+          <span className="ms-3 truncate text-sm font-medium">
+            {activeConversationTitle ?? fa.chat.newConversation}
           </span>
         </div>
 
-        <div className="absolute left-3 top-3 z-10 hidden md:flex">
+        <div className="absolute start-3 top-3 z-10 hidden md:flex">
           <SidebarTrigger className="bg-background/50 text-muted-foreground shadow-sm backdrop-blur-md hover:text-foreground" />
         </div>
 

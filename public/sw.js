@@ -16,6 +16,23 @@ const API_CACHE = 'ai-chatbot-api-v1';
 
 const OFFLINE_URL = '/offline.html';
 
+/*
+ * User-visible copy only — kept in sync by hand with src/lib/i18n/fa.ts
+ * (the `pwa` section). The SW runs outside the React bundle so it can't
+ * import the catalog; technical identifiers below (cache names, `type`,
+ * `tag`, `action`) deliberately stay English.
+ */
+const STRINGS = {
+  queueOfflineMessage:
+    'شما آفلاین هستید. پیامت پس از بازگشت اتصال ارسال خواهد شد.',
+  pushDefaultTitle: 'چت‌بات هوش مصنوعی',
+  pushDefaultBody: 'پیام جدیدی دریافت شد.',
+  notificationOpen: 'باز کردن',
+  notificationDismiss: 'رد کردن',
+  responseReadyTitle: 'پاسخ آماده است',
+  responseReadyBody: 'دستیار هوش مصنوعی شما پاسخ داد.',
+};
+
 /* -------------------------------------------------------------------------- */
 /* Pre-cache                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -114,8 +131,7 @@ async function apiRequest(request) {
         return new Response(
           JSON.stringify({
             error: 'Offline',
-            message:
-              'You are offline. Your message will be sent when the connection returns.',
+            message: STRINGS.queueOfflineMessage,
             offline: true,
           }),
           {
@@ -532,7 +548,7 @@ self.addEventListener(
     const options = {
       body:
         data.body ||
-        'New message received',
+        STRINGS.pushDefaultBody,
 
       icon: '/icons/icon-192.png',
       badge: '/icons/badge-72.png',
@@ -547,11 +563,11 @@ self.addEventListener(
       actions: [
         {
           action: 'open',
-          title: 'Open',
+          title: STRINGS.notificationOpen,
         },
         {
           action: 'dismiss',
-          title: 'Dismiss',
+          title: STRINGS.notificationDismiss,
         },
       ],
 
@@ -562,7 +578,7 @@ self.addEventListener(
 
     event.waitUntil(
       self.registration.showNotification(
-        data.title || 'AI Chatbot',
+        data.title || STRINGS.pushDefaultTitle,
         options,
       ),
     );
@@ -644,11 +660,11 @@ self.addEventListener(
 
       event.waitUntil(
         self.registration.showNotification(
-          'AI Response Ready',
+          STRINGS.responseReadyTitle,
           {
             body:
               data.preview ||
-              'Your AI assistant has responded',
+              STRINGS.responseReadyBody,
 
             icon: '/icons/icon-192.png',
 

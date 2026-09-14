@@ -5,6 +5,7 @@ import { LoaderCircle, Plus } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/layout/user-menu';
+import { fa } from '@/lib/i18n/fa';
 
 import { useConversations } from '@/lib/conversations/use-conversations';
 
@@ -57,7 +58,7 @@ export function AppSidebar({
   };
 
   const handleDelete = async (conversationId: string) => {
-    if (!window.confirm('Delete this conversation?')) {
+    if (!window.confirm(fa.sidebar.confirmDelete)) {
       return;
     }
 
@@ -69,7 +70,7 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-r border-border/50 bg-muted/20">
+    <Sidebar side="right" collapsible="offcanvas" className="border-e border-border/50 bg-muted/20">
       <SidebarHeader className="space-y-2 p-4">
         <Button
           variant="outline"
@@ -79,13 +80,13 @@ export function AppSidebar({
         >
           {isCreating ? (
             <>
-              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-              <span className="text-sm font-medium">Creating...</span>
+              <LoaderCircle className="me-2 h-4 w-4 animate-spin" />
+              <span className="text-sm font-medium">{fa.sidebar.creating}</span>
             </>
           ) : (
             <>
-              <Plus className="mr-2 h-4 w-4" />
-              <span className="text-sm font-medium">New chat</span>
+              <Plus className="me-2 h-4 w-4" />
+              <span className="text-sm font-medium">{fa.sidebar.newChat}</span>
             </>
           )}
         </Button>

@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { usePWAInstall } from '@/hooks/use-pwa-install';
+import { fa } from '@/lib/i18n/fa';
 
 function isServiceWorkerSupported() {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator;
@@ -17,7 +18,7 @@ interface UpdateBannerProps {
 function UpdateBanner({ onUpdate, onDismiss }: UpdateBannerProps) {
   return (
     <div
-      className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96"
+      className="fixed bottom-4 start-4 end-4 z-50 md:start-auto md:end-4 md:w-96"
       role="alert"
       aria-live="polite"
     >
@@ -37,21 +38,21 @@ function UpdateBanner({ onUpdate, onDismiss }: UpdateBannerProps) {
           />
         </svg>
 
-        <span className="flex-1 text-sm">A new version is available.</span>
+        <span className="flex-1 text-sm">{fa.pwa.updateAvailable}</span>
 
         <button
           type="button"
           onClick={onUpdate}
           className="shrink-0 rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          Update
+          {fa.pwa.update}
         </button>
 
         <button
           type="button"
           onClick={onDismiss}
           className="shrink-0 p-1 text-muted-foreground hover:text-foreground"
-          aria-label="Dismiss update"
+          aria-label={fa.pwa.dismissUpdate}
         >
           <svg
             className="h-4 w-4"
@@ -81,9 +82,9 @@ interface InstallBannerProps {
 function InstallBanner({ onInstall, onDismiss }: InstallBannerProps) {
   return (
     <div
-      className="fixed bottom-4 left-4 right-4 z-40 md:left-auto md:right-4 md:w-96"
+      className="fixed bottom-4 start-4 end-4 z-40 md:start-auto md:end-4 md:w-96"
       role="dialog"
-      aria-label="Install app"
+      aria-label={fa.pwa.installDialogTitle}
     >
       <div className="rounded-lg border border-border bg-background p-4 shadow-lg">
         <div className="flex items-start gap-3">
@@ -105,10 +106,10 @@ function InstallBanner({ onInstall, onDismiss }: InstallBannerProps) {
           </div>
 
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-medium">Install AI Chatbot</h3>
+            <h3 className="text-sm font-medium">{fa.pwa.installTitle}</h3>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Add to home screen for faster access and offline support.
+              {fa.pwa.installDescription}
             </p>
           </div>
         </div>
@@ -119,7 +120,7 @@ function InstallBanner({ onInstall, onDismiss }: InstallBannerProps) {
             onClick={onInstall}
             className="flex-1 rounded bg-primary px-3 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Install
+            {fa.pwa.install}
           </button>
 
           <button
@@ -127,7 +128,7 @@ function InstallBanner({ onInstall, onDismiss }: InstallBannerProps) {
             onClick={onDismiss}
             className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
           >
-            Not Now
+            {fa.pwa.notNow}
           </button>
         </div>
       </div>

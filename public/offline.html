@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <title>Offline - AI Chatbot</title>
+  <title>اتصال آفلاین - چت‌بات هوش مصنوعی</title>
   <style>
     * {
       margin: 0;
@@ -34,7 +34,12 @@
     }
 
     body {
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      /*
+       * Offline page must render with zero network requests (no webfonts), so
+       * this stack is OS fonts only. Tahoma ships with Windows and has solid
+       * Persian coverage; system-ui/Ebbiyeh-style fallbacks cover Linux/mac.
+       */
+      font-family: Tahoma, "Segoe UI", system-ui, "Noto Sans Arabic", "Noto Naskh Arabic", sans-serif;
       background-color: var(--bg);
       color: var(--fg);
       min-height: 100vh;
@@ -42,7 +47,7 @@
       align-items: center;
       justify-content: center;
       padding: 1rem;
-      line-height: 1.5;
+      line-height: 1.75;
     }
 
     .container {
@@ -137,16 +142,16 @@
       <path d="M5.24 19.59a15.89 15.89 0 0 1-2.88-4.7" stroke-linecap="round"/>
     </svg>
 
-    <h1>You're Offline</h1>
-    <p>No internet connection detected. Please check your network and try again.</p>
+    <h1>شما آفلاین هستید</h1>
+    <p>اتصال اینترنتی شناسایی نشد. لطفاً شبکه‌ی خود را بررسی کنید و دوباره تلاش کنید.</p>
 
     <button class="retry-btn" onclick="window.location.reload()">
-      Try Again
+      تلاش دوباره
     </button>
 
     <div class="status-indicator" id="status">
       <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">Checking connection...</span>
+      <span id="statusText">در حال بررسی اتصال…</span>
     </div>
   </div>
 
@@ -157,11 +162,11 @@
     function updateOnlineStatus() {
       if (navigator.onLine) {
         statusDot.classList.add('online');
-        statusText.textContent = 'Back online! Reloading...';
+        statusText.textContent = 'اتصال برقرار شد! در حال بارگذاری دوباره…';
         setTimeout(() => window.location.reload(), 1000);
       } else {
         statusDot.classList.remove('online');
-        statusText.textContent = 'Still offline. Waiting for connection...';
+        statusText.textContent = 'هنوز آفلاین هستید. در انتظار اتصال…';
       }
     }
 

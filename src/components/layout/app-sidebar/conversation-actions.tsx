@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenuAction } from '@/components/ui/sidebar';
+import { fa } from '@/lib/i18n/fa';
 import { BaseUIEvent } from '@base-ui/react/types';
 
 interface ConversationActionsProps {
@@ -94,6 +95,8 @@ function RenameMenuItem({
         <input
           ref={inputRef}
           type="text"
+          dir="auto"
+          aria-label={fa.sidebar.rename}
           value={editTitle}
           onChange={(event) => setEditTitle(event.target.value)}
           onKeyDown={handleKeyDown}
@@ -111,7 +114,7 @@ function RenameMenuItem({
       className="flex items-center gap-2"
     >
       <Edit2 className="h-4 w-4" />
-      Rename
+      {fa.sidebar.rename}
     </DropdownMenuItem>
   );
 }
@@ -143,11 +146,11 @@ export function ConversationActions({
 
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      <DropdownMenuTrigger render={<SidebarMenuAction />}>
+      <DropdownMenuTrigger render={<SidebarMenuAction aria-label={fa.sidebar.moreOptions} />}>
         <MoreHorizontal className="h-4 w-4" />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent side="right" align="start">
+      <DropdownMenuContent side="inline-end" align="start">
         <RenameMenuItem
           conversationId={conversationId}
           currentTitle={currentTitle}
@@ -159,7 +162,7 @@ export function ConversationActions({
           className="text-destructive focus:text-destructive"
           onClick={() => onDelete(conversationId)}
         >
-          Delete
+          {fa.sidebar.delete}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

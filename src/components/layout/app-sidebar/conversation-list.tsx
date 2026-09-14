@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 
 import type { Conversation } from '@/lib/conversations/conversations.types';
 import { groupConversations } from '@/lib/conversations/conversations-utils';
+import { fa } from '@/lib/i18n/fa';
 
 import { ConversationItem } from './conversation-item';
 
@@ -37,7 +38,7 @@ export function ConversationList({
         <p>{error}</p>
 
         <Button variant="ghost" size="sm" className="mt-2" onClick={onRetry}>
-          Retry
+          {fa.chat.retry}
         </Button>
       </div>
     );
@@ -48,8 +49,8 @@ export function ConversationList({
       <div className="p-4 text-center text-sm text-muted-foreground">
         <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" />
 
-        <p>No conversations yet</p>
-        <p className="mt-1 text-xs">Click &quot;New chat&quot; to start</p>
+        <p>{fa.sidebar.emptyTitle}</p>
+        <p className="mt-1 text-xs">{fa.sidebar.emptyHint}</p>
       </div>
     );
   }

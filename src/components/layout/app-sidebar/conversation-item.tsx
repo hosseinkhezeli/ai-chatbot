@@ -5,6 +5,7 @@ import { MessageSquare } from 'lucide-react';
 import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 
 import type { Conversation } from '@/lib/conversations/conversations.types';
+import { fa } from '@/lib/i18n/fa';
 import { ConversationActions } from './conversation-actions';
 
 interface ConversationItemProps {
@@ -31,7 +32,7 @@ export function ConversationItem({
       >
         <MessageSquare className="h-4 w-4 text-muted-foreground/70" />
 
-        <span className="truncate">{conversation.title ?? 'Untitled'}</span>
+        <span className="truncate">{conversation.title ?? fa.sidebar.untitled}</span>
       </SidebarMenuButton>
 
       <ConversationActions

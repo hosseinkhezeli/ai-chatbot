@@ -10,6 +10,7 @@ import {
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { fa } from "@/lib/i18n/fa"
 import { ArrowDownIcon } from "lucide-react"
 
 function MessageScrollerProvider(
@@ -110,7 +111,7 @@ function MessageScrollerButton({
           <ArrowDownIcon
           />
           <span className="sr-only">
-            {direction === "end" ? "Scroll to end" : "Scroll to start"}
+            {direction === "end" ? fa.messageScroller.scrollToEnd : fa.messageScroller.scrollToStart}
           </span>
         </>
       )}

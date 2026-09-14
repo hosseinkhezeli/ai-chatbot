@@ -1,7 +1,7 @@
 {
-  "name": "AI Chatbot",
-  "short_name": "AI Chat",
-  "description": "A self-hosted AI chat interface with streaming responses",
+  "name": "چت‌بات هوش مصنوعی",
+  "short_name": "چت هوش مصنوعی",
+  "description": "یک رابط چت هوش مصنوعی، خودمیزبان، با پاسخ‌های جریانی",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -11,8 +11,8 @@
   "theme_color": "#000000",
   "theme_color_light": "#ffffff",
   "theme_color_dark": "#000000",
-  "dir": "ltr",
-  "lang": "en",
+  "dir": "rtl",
+  "lang": "fa",
   "categories": ["productivity", "utilities"],
   "icons": [
     {
@@ -67,9 +67,9 @@
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "New Chat",
-      "short_name": "New Chat",
-      "description": "Start a new conversation",
+      "name": "چت جدید",
+      "short_name": "چت جدید",
+      "description": "شروع یک گفت‌وگوی جدید",
       "url": "/?new=true",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }

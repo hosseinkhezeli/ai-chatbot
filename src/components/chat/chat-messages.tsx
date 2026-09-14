@@ -16,6 +16,8 @@ import {
   MessageScrollerViewport,
 } from '@/components/ui/message-scroller';
 
+import { fa } from '@/lib/i18n/fa';
+
 interface ChatMessagesProps {
   messages: UIMessage[];
   isLoading: boolean;
@@ -42,7 +44,7 @@ function LoadingState() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
 
-        <span>Loading conversation...</span>
+        <span>{fa.chat.loadingHistory}</span>
       </div>
     </MessageScrollerItem>
   );
@@ -60,7 +62,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         <p>{message}</p>
 
         <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}>
-          Retry
+          {fa.chat.retry}
         </Button>
       </div>
     </MessageScrollerItem>
@@ -77,7 +79,7 @@ function EmptyState() {
 
         <MessageContent>
           <Bubble variant="ghost">
-            <BubbleContent>How can I help you today?</BubbleContent>
+            <BubbleContent>{fa.chat.emptyPrompt}</BubbleContent>
           </Bubble>
         </MessageContent>
       </Message>
@@ -97,7 +99,10 @@ function ChatMessage({ message }: { message: UIMessage }) {
               {message.parts
                 .filter((part) => part.type === 'text')
                 .map((part, index) => (
-                  <span key={`${message.id}-${index}`} className="whitespace-pre-wrap">
+                  /* dir="auto" lets the browser resolve bidi from the content's
+                     first strong character — a Persian sentence stays RTL, an
+                     English/code snippet stays LTR, inside the same RTL bubble. */
+                  <span key={`${message.id}-${index}`} dir="auto" className="block whitespace-pre-wrap">
                     {part.text}
                   </span>
                 ))}
@@ -122,7 +127,7 @@ function ThinkingIndicator() {
             <BubbleContent className="flex items-center gap-2 text-muted-foreground">
               <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
 
-              <span>Thinking...</span>
+              <span>{fa.chat.thinking}</span>
             </BubbleContent>
           </Bubble>
         </MessageContent>
@@ -131,13 +136,16 @@ function ThinkingIndicator() {
   );
 }
 
-function MessageError({ error }: { error: Error }) {
+function MessageError() {
+  /* error.message can carry raw technical detail (provider errors, stack-like
+     text) — users get a clean Persian message instead; the original error is
+     still logged client-side via the AI SDK and server-side in the route. */
   return (
     <MessageScrollerItem messageId="message-error">
       <Message>
         <MessageContent>
           <Bubble variant="destructive">
-            <BubbleContent>{error.message}</BubbleContent>
+            <BubbleContent dir="auto">{fa.errors.chatFailed}</BubbleContent>
           </Bubble>
         </MessageContent>
       </Message>
@@ -170,7 +178,7 @@ export function ChatMessages({
 
             {isLoading && <ThinkingIndicator />}
 
-            {error && <MessageError error={error} />}
+            {error && <MessageError />}
           </MessageScrollerContent>
         </MessageScrollerViewport>
 

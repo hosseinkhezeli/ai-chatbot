@@ -1,9 +1,18 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono, JetBrains_Mono, Roboto } from 'next/font/google';
+import { Geist, Geist_Mono, JetBrains_Mono, Vazirmatn } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
+import { AppProviders } from '@/components/providers';
+import { fa } from '@/lib/i18n/fa';
 
-const roboto = Roboto({subsets:['latin'],variable:'--font-sans'});
+// Vazirmatn is a Persian-first Google Font — full Arabic-script coverage plus
+// its own Latin figures. It is the app's primary UI face; next/font self-hosts
+// it (same mechanism as the other fonts here — no new npm dependency).
+const vazirmatn = Vazirmatn({
+  subsets: ['arabic', 'latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
@@ -18,24 +27,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AI Chatbot',
-  description: 'A self-hosted AI chat interface with streaming responses',
-  applicationName: 'AI Chatbot',
+  title: fa.meta.title,
+  description: fa.meta.description,
+  applicationName: fa.meta.title,
   generator: 'Next.js',
   referrer: 'origin-when-cross-origin',
   robots: 'noindex, nofollow',
   openGraph: {
     type: 'website',
-    locale: 'en_US',
+    locale: 'fa_IR',
     url: '/',
-    title: 'AI Chatbot',
-    description: 'A self-hosted AI chat interface with streaming responses',
-    siteName: 'AI Chatbot',
+    title: fa.meta.title,
+    description: fa.meta.description,
+    siteName: fa.meta.title,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Chatbot',
-    description: 'A self-hosted AI chat interface with streaming responses',
+    title: fa.meta.title,
+    description: fa.meta.description,
   },
   icons: {
     icon: [
@@ -54,7 +63,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'AI Chatbot',
+    title: fa.meta.appleWebAppTitle,
     startupImage: [
       {
         url: '/icons/icon-512.png',
@@ -85,15 +94,18 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html
-      lang="en"
+      lang="fa"
+      dir="rtl"
       className={cn(
-              'h-full',
-              'antialiased dark',
-              geistSans.variable,
-              geistMono.variable,
-              'font-mono',
-              jetbrainsMono.variable,
-            "font-sans", roboto.variable)}
+        'h-full',
+        'antialiased dark',
+        geistSans.variable,
+        geistMono.variable,
+        'font-mono',
+        jetbrainsMono.variable,
+        'font-sans',
+        vazirmatn.variable,
+      )}
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
@@ -102,11 +114,13 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="AI Chat" />
+        <meta name="apple-mobile-web-app-title" content={fa.meta.appleWebAppTitle} />
         <meta name="msapplication-TileColor" content="#000000" />
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }

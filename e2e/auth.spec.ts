@@ -5,15 +5,15 @@ test.describe('Authentication', () => {
     await page.goto('/auth/signin');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1, h2, text=Sign in')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('button:has-text("Sign in with GitHub")')).toBeVisible();
+    await expect(page.locator('h1, h2, text=ورود')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button:has-text("ادامه با GitHub")')).toBeVisible();
   });
 
   test('error page loads correctly', async ({ page }) => {
     await page.goto('/auth/error');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('text=Error, text=Authentication error')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=خطای احراز هویت')).toBeVisible({ timeout: 10000 });
   });
 
   test('protected routes redirect to sign in', async ({ page }) => {
