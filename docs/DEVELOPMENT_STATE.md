@@ -105,6 +105,14 @@ Automated tests added on branch `testing/test-infrastructure`. Vitest (unit + in
 
 **Also diagnosed (not a code bug):** GapGPT returns generic HTTP 403 `request failed` when the account can't cover the pre-consume quota (~$0.0044/request for glm-4-flash). Balance at diagnosis: **$0.004** — so most requests fail and tiny ones squeak through, which made the failure look intermittent. Tool calls roughly double per-turn cost (two model steps). **Action: top up the GapGPT account.**
 
+### Step 4 — Second provider (Google/Gemma) + provider-selection env gotcha (2026-09-14) ✅
+
+- Human added `lib/ai/adapters/google.ts` (`@ai-sdk/google@^4.0.64`, model `gemma-4-26b-a4b-it` for logical `chat`) and registered it in `factory.ts` as `DEFAULT_PROVIDER = 'google'`.
+- **Gotcha found:** `getConfiguredProvider()` reads `process.env.AI_PROVIDER` **first** — `.env.local` still said `AI_PROVIDER=gapgpt`, so the change of default had no effect. The "refusals/hallucinated dates" seen in the UI were actually produced by **glm-4-flash**, not Gemma. Set to `AI_PROVIDER=google`.
+- **Verified by live repro (Node, same tools + persona as the harness):** Gemma calls `dateTime` correctly and answers with the real time — with both a minimal system prompt *and* the career-strategist persona. `webSearch` also gets called. GapGPT/glm-4-flash was the weak tool-caller.
+- **Edge case observed:** when a tool keeps returning unsatisfying results, Gemma can burn all 5 steps calling it → `finishReason: 'tool-calls'` with empty text → the route's `hasText` guard skips persisting and the UI shows an error. Related to the open 4.1 item "handle tool failures (retry/fallback)".
+- Adapters now forward `stopWhen` **and** `tools` (gapgpt.ts had been dropping `tools` in one edit; both verified forwarding).
+
 ## Frontend integration status
 
 ### Done (Phase 2.7 complete)
