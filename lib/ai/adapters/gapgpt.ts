@@ -30,13 +30,14 @@ function resolveModel(model: AIModelId): string {
 }
 
 export class GapGPTAIClient extends BaseAIClient {
-  async streamText({ model, system, messages, maxOutputTokens, abortSignal, stopWhen }: AIStreamTextParams) {
+  async streamText({ model, system, messages, maxOutputTokens, abortSignal, tools, stopWhen }: AIStreamTextParams) {
     return streamText({
       model: getProvider().chatModel(resolveModel(model)),
       system,
       messages,
       maxOutputTokens,
       abortSignal,
+      tools,
       stopWhen,
       maxRetries: 0,
 

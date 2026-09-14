@@ -5,6 +5,7 @@ export { getAIClient } from './factory';
 export { AI_PROVIDERS, type AIProvider } from './factory';
 
 export { GapGPTAIClient } from './adapters/gapgpt';
+export { GoogleAIClient } from './adapters/google';
 
 export { AI_MODEL_IDS } from './types';
 
