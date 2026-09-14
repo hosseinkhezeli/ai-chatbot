@@ -1,4 +1,4 @@
-import type { ModelMessage, streamText } from 'ai';
+import type { ModelMessage, streamText, StopCondition, ToolSet } from 'ai';
 
 export const AI_MODEL_IDS = {
   chat: 'chat',
@@ -12,6 +12,8 @@ export type AIStreamTextParams = {
   messages: ModelMessage[];
   maxOutputTokens?: number;
   abortSignal?: AbortSignal;
+  tools?: ToolSet;
+  stopWhen?: StopCondition<ToolSet>;
 };
 
 export type AIStreamTextResult = ReturnType<typeof streamText>;

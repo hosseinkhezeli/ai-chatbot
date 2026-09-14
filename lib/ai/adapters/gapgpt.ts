@@ -3,7 +3,6 @@ import { streamText } from 'ai';
 
 import { BaseAIClient } from '../client';
 import type { AIModelId, AIStreamTextParams } from '../types';
-
 const GAPGPT_BASE_URL = process.env.GAPGPT_BASE_URL ?? '404_GAPGPT_BASE_URL';
 
 function getProvider() {
@@ -31,13 +30,14 @@ function resolveModel(model: AIModelId): string {
 }
 
 export class GapGPTAIClient extends BaseAIClient {
-  async streamText({ model, system, messages, maxOutputTokens, abortSignal }: AIStreamTextParams) {
+  async streamText({ model, system, messages, maxOutputTokens, abortSignal, stopWhen }: AIStreamTextParams) {
     return streamText({
       model: getProvider().chatModel(resolveModel(model)),
       system,
       messages,
       maxOutputTokens,
       abortSignal,
+      stopWhen,
       maxRetries: 0,
 
       onError({ error }) {

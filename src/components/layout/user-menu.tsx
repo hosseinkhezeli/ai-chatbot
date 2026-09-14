@@ -106,7 +106,7 @@ export function UserMenu() {
             <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent className="w-56 rounded-xl" align="end" side="right" sideOffset={8}>
+          <DropdownMenuContent className="w-56 rounded-xl" align="end" side="top" sideOffset={8}>
             <DropdownMenuGroup>
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">

@@ -97,3 +97,19 @@ export const messages = pgTable('messages', {
 }, (table) => [
   index('messages_conversation_id_idx').on(table.conversationId),
 ]);
+
+// Tracks tool calls made during assistant message generation
+// Enables reproducibility and debugging of agent responses (Phase 4.1)
+export const toolCalls = pgTable('tool_calls', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  messageId: uuid('message_id')
+    .notNull()
+    .references(() => messages.id, { onDelete: 'cascade' }),
+  toolName: text('tool_name').notNull(),
+  input: jsonb('input').notNull(),
+  output: jsonb('output'),
+  status: text('status').notNull().default('success'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('tool_calls_message_id_idx').on(table.messageId),
+]);

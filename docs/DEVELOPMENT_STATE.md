@@ -3,17 +3,73 @@
 > Handoff document: what is actually implemented right now, as verified against the code (not just the plan).
 > Update this file at the end of every integration step.
 
-## Last updated: 2026-09-14 — Phase 2.7 complete
+## Last updated: 2026-09-14 — Phase 4 Step 1 (tool calling) expanded: 3 tools + tool-call persistence
 
 ## Backend (complete, verified)
 
-- `POST /api/chat` — streaming chat; accepts optional `conversationId` in the request body; persists user + assistant messages; ownership-checked.
+- `POST /api/chat` — streaming chat; accepts optional `conversationId` in the request body; persists user + assistant messages; ownership-checked. Now passes tools to the harness.
 - `GET /api/conversations` — list current user's conversations (ordered by `updatedAt` desc). Supports `?q=` search parameter with `ilike` filtering.
 - `POST /api/conversations` — create conversation, returns `{ conversation }`.
 - `GET /api/conversations/:id` — returns `{ conversation, messages }`. Response includes the conversation's persisted messages (ordered by `createdAt` asc; `content` jsonb holds UIMessage `parts`).
 - `DELETE /api/conversations/:id` — ownership-checked delete (wired to UI).
 - `PATCH /api/conversations/:id` — ownership-checked rename (wired to UI via dropdown).
 - Auth.js v5 (GitHub OAuth, database sessions), `getRequiredCurrentUser()` guard on every route.
+
+## Phase 4 — Agent harness upgrade
+
+### Step 1 — Tool calling (2026-09-14) ✅
+
+**What was added:**
+- `lib/agent/tools/definitions.ts` — four tools using AI SDK's `tool()` helper with Zod schemas:
+  - `calculator` — safe arithmetic evaluation
+  - `dateTime` — now / format / add / diff operations on dates
+  - `stringUtils` — uppercase / lowercase / reverse / length / trim / count_words / replace
+  - `webSearch` — live internet search via DuckDuckGo's key-free `lite` HTML endpoint (GET + browser-like headers; the endpoint bot-challenges plain fetch agents and POST forms with HTTP 202). Returns `{ results: [{ title, url, snippet }] }`, capped at 5 by default (max 10), 10s timeout, graceful `{ error }` on failure.
+- `lib/agent/tools/index.ts` — exports
+- `tools` object passed from `harness.ts` → `streamText()` via `AIStreamTextParams.tools`
+
+**Key implementation details:**
+- Calculator tool: safe arithmetic evaluation. Sanitizes input (only `[0-9+\-*/().\s]` allowed), uses `Function` constructor (not `eval`), returns `{ result, expression }` or `{ error }`
+- Uses AI SDK v7's `inputSchema` field (not `parameters` as in v6)
+- `execute` function receives typed input directly: `async ({ expression }: { expression: string }) => {...}`
+- Tool orchestration loop (model → tool → tool result → model) is handled automatically by the AI SDK `streamText()`
+- No custom orchestration code needed
+
+### Step 2 — Tool-call persistence (2026-09-14) ✅
+
+**What was added:**
+- `tool_calls` table in `lib/db/schema.ts` (migration `drizzle/0004_bright_proudstar.sql`, applied to dev DB):
+  `id`, `message_id` (FK → messages, cascade delete), `tool_name`, `input` (jsonb), `output` (jsonb, nullable), `status` (default `'success'`), `created_at`; indexed on `message_id`.
+- `POST /api/chat` `onFinish`: the assistant message insert now uses `.returning({ id })`, and every `tool-*` part in `responseMessage.parts` is written to `tool_calls` with its input, output (or `errorText`), and status (`'error'` when the part state is `output-error`).
+
+**Why this design:**
+- Tool calls are already embedded in `messages.content` (the UIMessage parts). The `tool_calls` table is a *queryable index* over them — for auditing, debugging, and future usage stats — not a replacement. The FK + cascade means deleting a conversation's messages cleans up tool activity automatically.
+
+**Files:**
+- `lib/agent/tools/definitions.ts` (rewritten: 3 tools)
+- `lib/agent/tools/index.ts` (new)
+- `lib/agent/harness.ts` (modified: import tools, pass to streamText)
+- `lib/ai/types.ts` (modified: add `tools?: ToolSet` to `AIStreamTextParams`)
+- `lib/db/schema.ts` (modified: `toolCalls` table)
+- `drizzle/0004_bright_proudstar.sql` (new migration, applied)
+- `src/app/api/chat/route.ts` (modified: persist tool calls in `onFinish`)
+
+**Verified:**
+- Calculator tool confirmed working end-to-end by the user in the browser (2026-09-14).
+- `webSearch` fetch+parse pipeline verified against the live DuckDuckGo lite endpoint from Node (real results with titles/URLs/snippets); not yet smoke-tested through the chat UI.
+- `tsc --noEmit` clean; lint shows no new warnings.
+- Tool-call persistence rows not yet smoke-tested in browser (needs a chat turn that triggers a tool).
+
+### Step 3 — Harness fix: tool loop was stopping after one step (2026-09-14) ✅
+
+**Bug found via browser test** ("What time and date is it?" → error): AI SDK v7's `streamText` defaults to `stopWhen: stepCountIs(1)`. The model called the tool and `execute()` ran, but the loop stopped *before feeding the result back* — so no final answer existed, and the route's `hasText` guard then refused to persist an empty assistant message.
+
+**Fix:**
+- `lib/agent/harness.ts` — passes `stopWhen: stepCountIs(5)` (max 5 model steps per turn)
+- `lib/ai/types.ts` — `AIStreamTextParams.stopWhen?: StopCondition<ToolSet>`
+- `lib/ai/adapters/gapgpt.ts` — forwards `stopWhen` to `streamText` (it was previously dropped at the adapter boundary)
+
+**Also diagnosed (not a code bug):** GapGPT returns generic HTTP 403 `request failed` when the account can't cover the pre-consume quota (~$0.0044/request for glm-4-flash). Balance at diagnosis: **$0.004** — so most requests fail and tiny ones squeak through, which made the failure look intermittent. Tool calls roughly double per-turn cost (two model steps). **Action: top up the GapGPT account.**
 
 ## Frontend integration status
 
@@ -67,16 +123,17 @@
 - `lib/` at root contains server-side domain code (agent, ai, auth, db). `src/lib/` is only for frontend utilities (`utils.ts`).
 - The `lib/agent/` folder is framework-agnostic — no Next.js imports allowed.
 - Provider abstraction: `lib/ai/factory.ts` resolves `AI_PROVIDER=gapgpt` → `GapGPTAIClient`; logical model `chat` maps to `glm-4-flash`.
+- Tools defined in `lib/agent/tools/` (agent owns tool semantics, not provider layer).
+- AI SDK v7 `tool()` uses `inputSchema` field (not `parameters`). `execute` receives typed input directly.
 
 ## Next task
 
-Phase 2.7 is complete. The application is a working, multi-user chat product with:
-- Real authentication (GitHub OAuth)
-- Real conversation persistence (CRUD)
-- Real message history hydration
-- Search, rename, delete all functional
-- Real user session data in UI
+Phase 4 Step 1 (tool calling) is complete and expanded: three tools (calculator, dateTime, stringUtils) are wired into the harness, and tool activity is persisted to the `tool_calls` table.
 
-**Next milestone: Phase 3 — Production identity & authorization (already mostly complete in practice)** or **Phase 4 — Harness upgrade (tool calling)**.
+**Next steps within Phase 4:**
+- Smoke-test tool-call persistence: send a chat message that triggers a tool, then verify a row lands in `tool_calls`
+- Handle tool failures more gracefully (retry, fallback)
+- Multiple personas (Phase 4.2)
+- Prompt versioning (Phase 4.3)
 
-Per ROADMAP.md, Phase 3 authorization concerns are already addressed in the current implementation. The logical next step is Phase 4 (tool calling) once the human confirms readiness to move on.
+Per ROADMAP.md, Phase 4.2 (multiple personas) is the next sub-phase.

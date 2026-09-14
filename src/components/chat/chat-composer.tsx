@@ -52,16 +52,17 @@ export function ChatComposer({
         </p>
       )}
 
-      <InputGroup>
+      <InputGroup className="rounded-4xl">
         <InputGroupTextarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message your tutor..."
-          rows={1}
+          placeholder="Type here..."
+          rows={5}
           disabled={disabled}
-          className="min-h-12 resize-none"
+          className="min-h-12  resize-none max-h-[40svh] no-scrollbar"
           aria-label="Message"
+          cols={33}
         />
 
         <InputGroupButton
@@ -80,6 +81,7 @@ export function ChatComposer({
           variant="default"
           disabled={!value.trim() || disabled}
           aria-label="Send message"
+          className={'mr-2'}
         >
           {isLoading ? <LoaderCircleIcon className="animate-spin" /> : <ArrowUpIcon />}
         </InputGroupButton>

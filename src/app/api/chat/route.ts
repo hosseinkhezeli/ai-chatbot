@@ -8,7 +8,7 @@ import { streamChat } from '@agent/harness';
 import { buildSystemPrompt } from '@agent/systemPrompt';
 import { getRequiredCurrentUser } from '@/lib/auth/current-user';
 import { db } from '@/db/client';
-import { conversations, messages } from '@/db/schema';
+import { conversations, messages, toolCalls } from '@/db/schema';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -145,11 +145,39 @@ export async function POST(req: Request): Promise<Response> {
         }
 
         try {
-          await db.insert(messages).values({
-            conversationId: conversationIdFinal,
-            role: 'assistant',
-            content: responseMessage.parts,
-          });
+          const [assistantMessage] = await db
+            .insert(messages)
+            .values({
+              conversationId: conversationIdFinal,
+              role: 'assistant',
+              content: responseMessage.parts,
+            })
+            .returning({ id: messages.id });
+
+          // Persist each tool invocation made during this assistant turn so the
+          // agent's reasoning is reproducible (Phase 4.1). Tool parts arrive as
+          // `tool-{name}` UIMessage parts with input/output state.
+          const toolPartRows = responseMessage.parts
+            .filter((part) => part.type.startsWith('tool-'))
+            .map((part) => {
+              const toolName = part.type.replace(/^tool-/, '');
+              const state = (part as { state?: string }).state;
+              const output = (part as { output?: unknown }).output ?? null;
+              const errorText = (part as { errorText?: string }).errorText ?? null;
+              const status = state === 'output-error' || errorText ? 'error' : 'success';
+
+              return {
+                messageId: assistantMessage.id,
+                toolName,
+                input: (part as { input?: unknown }).input ?? null,
+                output: output ?? errorText,
+                status,
+              };
+            });
+
+          if (toolPartRows.length > 0) {
+            await db.insert(toolCalls).values(toolPartRows);
+          }
 
           await db
             .update(conversations)

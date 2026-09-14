@@ -91,12 +91,6 @@ function ChatMessage({ message }: { message: UIMessage }) {
   return (
     <MessageScrollerItem messageId={message.id} scrollAnchor={isUser}>
       <Message align={isUser ? 'end' : 'start'}>
-        {!isUser && (
-          <MessageAvatar>
-            <AiAvatar />
-          </MessageAvatar>
-        )}
-
         <MessageContent className={isUser ? 'items-end' : 'items-start'}>
           <Bubble variant={isUser ? 'default' : 'ghost'}>
             <BubbleContent>
@@ -162,7 +156,7 @@ export function ChatMessages({
   return (
     <MessageScrollerProvider>
       <MessageScroller className="min-h-0 flex-1">
-        <MessageScrollerViewport>
+        <MessageScrollerViewport className="no-scrollbar!">
           <MessageScrollerContent className="gap-6 py-6">
             {isHistoryLoading ? (
               <LoadingState />

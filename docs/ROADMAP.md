@@ -256,12 +256,13 @@ Only start this phase after authentication and persistence are solid (including 
 
 ## 4.1 Tool calling
 
-* [ ] Add one simple tool
-* [ ] Define the tool schema
-* [ ] Allow the model to call the tool
-* [ ] Feed tool results back into the model
-* [ ] Persist tool activity where appropriate
-* [ ] Handle tool failures
+* [x] Add one simple tool (calculator)
+* [x] Add more tools (dateTime, stringUtils)
+* [x] Define the tool schema (Zod + AI SDK `tool()`)
+* [x] Allow the model to call the tool (passed via `streamText({ tools })`)
+* [x] Feed tool results back into the model (AI SDK orchestrates the loop)
+* [x] Persist tool activity where appropriate (`tool_calls` table + write in chat `onFinish`)
+* [ ] Handle tool failures (graceful error returns implemented; retry/fallback not yet)
 
 Example:
 
@@ -279,6 +280,13 @@ model
 final response
 ```
 
+**Implementation notes:**
+- Tools live in `lib/agent/tools/` (agent owns tool semantics, not the provider layer)
+- Calculator tool: safe arithmetic (`[0-9+\-*/().\s]` sanitization + `Function` constructor)
+- AI SDK v7 uses `inputSchema` field (not `parameters`); `execute` receives typed input directly
+- Tool orchestration loop handled by `streamText()` automatically
+- `tool_calls` table (migration 0004): one row per tool invocation, FK → `messages.id` with cascade delete. Chat route's `onFinish` scans the assistant message's `tool-*` parts and inserts them, capturing input, output (or errorText), and status.
+
 ---
 
 ## 4.2 Multiple personas
@@ -288,6 +296,8 @@ final response
 * [ ] Validate persona IDs
 * [ ] Load the correct system prompt when generating
 * [ ] Preserve the persona used by historical conversations
+
+> Note: `systemPrompt.ts` already supports a `PersonaId` parameter. Schema has `system_prompt_version` column. This is the next sub-phase after tool persistence.
 
 ---
 

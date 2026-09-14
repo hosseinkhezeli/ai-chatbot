@@ -268,10 +268,10 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
   }
 
   return (
-    <main className="flex h-svh flex-col">
+    <main className="flex h-[calc(100svh-64px)] md:h-svh flex-col">
       <OfflineIndicator />
 
-      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col px-4">
         <ChatMessages
           messages={messages}
           isLoading={isLoading}

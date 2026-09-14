@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono, JetBrains_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, JetBrains_Mono, Roboto } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
+
+const roboto = Roboto({subsets:['latin'],variable:'--font-sans'});
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
@@ -54,7 +56,11 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'AI Chatbot',
     startupImage: [
-      { url: '/icons/icon-512.png', media: '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)' },
+      {
+        url: '/icons/icon-512.png',
+        media:
+          '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)',
+      },
     ],
   },
   other: {
@@ -81,13 +87,13 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html
       lang="en"
       className={cn(
-        'h-full',
-        'antialiased dark',
-        geistSans.variable,
-        geistMono.variable,
-        'font-mono',
-        jetbrainsMono.variable,
-      )}
+              'h-full',
+              'antialiased dark',
+              geistSans.variable,
+              geistMono.variable,
+              'font-mono',
+              jetbrainsMono.variable,
+            "font-sans", roboto.variable)}
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
