@@ -169,7 +169,7 @@ export function SWRegistration() {
 
         if (cancelled) {
           return;
-        }
+        } 
 
         setRegistration(swRegistration);
 
