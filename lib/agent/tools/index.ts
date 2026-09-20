@@ -1,5 +1,5 @@
 export {
-  tools,
+  createTools,
   calculatorTool,
   dateTimeTool,
   stringUtilsTool,
