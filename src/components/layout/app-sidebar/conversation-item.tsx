@@ -17,6 +17,9 @@ interface ConversationItemProps {
   onDelete: (conversationId: string) => void;
 }
 
+const LONG_PRESS_DURATION = 500;
+const LONG_PRESS_MOVE_THRESHOLD = 8;
+
 export function ConversationItem({
   conversation,
   isActive,
@@ -26,7 +29,13 @@ export function ConversationItem({
 }: ConversationItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const pointerStartRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!isEditing) return;
@@ -35,9 +44,71 @@ export function ConversationItem({
     inputRef.current?.select();
   }, [isEditing]);
 
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+      return;
+    }
+
+    clearLongPressTimer();
+
+    longPressTriggeredRef.current = false;
+    pointerStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      suppressClickRef.current = true;
+      setMenuOpen(true);
+    }, LONG_PRESS_DURATION);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (longPressTimerRef.current === null) {
+      return;
+    }
+
+    const deltaX = Math.abs(event.clientX - pointerStartRef.current.x);
+    const deltaY = Math.abs(event.clientY - pointerStartRef.current.y);
+
+    if (deltaX > LONG_PRESS_MOVE_THRESHOLD || deltaY > LONG_PRESS_MOVE_THRESHOLD) {
+      clearLongPressTimer();
+    }
+  };
+
+  const handlePointerUp = () => {
+    clearLongPressTimer();
+  };
+
+  const handlePointerCancel = () => {
+    clearLongPressTimer();
+    longPressTriggeredRef.current = false;
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (suppressClickRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      suppressClickRef.current = false;
+      longPressTriggeredRef.current = false;
+      return;
+    }
+
+    onSelect(conversation.id);
+  };
+
   const startEditing = () => {
     setEditTitle(conversation.title ?? '');
     setIsEditing(true);
+    setMenuOpen(false);
   };
 
   const cancelEditing = () => {
@@ -89,13 +160,23 @@ export function ConversationItem({
         <SidebarMenuButton
           isActive={isActive}
           className="text-sm"
-          onClick={() => onSelect(conversation.id)}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onClick={handleClick}
         >
+          <MessageSquare />
           <span className="truncate">{conversation.title ?? fa.sidebar.untitled}</span>
         </SidebarMenuButton>
       )}
 
-      <ConversationActions onRename={startEditing} onDelete={() => onDelete(conversation.id)} />
+      <ConversationActions
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        onRename={startEditing}
+        onDelete={() => onDelete(conversation.id)}
+      />
     </SidebarMenuItem>
   );
 }

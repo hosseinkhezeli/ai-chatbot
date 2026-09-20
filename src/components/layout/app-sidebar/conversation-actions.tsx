@@ -12,18 +12,34 @@ import { SidebarMenuAction } from '@/components/ui/sidebar';
 import { fa } from '@/lib/i18n/fa';
 
 interface ConversationActionsProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onRename: () => void;
   onDelete: () => void;
 }
 
-export function ConversationActions({ onRename, onDelete }: ConversationActionsProps) {
+export function ConversationActions({
+  open,
+  onOpenChange,
+  onRename,
+  onDelete,
+}: ConversationActionsProps) {
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger
         render={
           <SidebarMenuAction
             aria-label={fa.sidebar.moreOptions}
-            className="left-2! right-auto! transition-all opacity-0 group-hover/chat-item:opacity-100"
+            className="
+              left-2! right-auto!
+              opacity-0
+              pointer-events-none
+              max-md:pointer-events-none
+              md:pointer-events-auto
+              md:group-hover/chat-item:opacity-100
+              md:focus-visible:opacity-100
+              transition-all
+            "
           >
             <MoreHorizontal />
           </SidebarMenuAction>
@@ -36,15 +52,12 @@ export function ConversationActions({ onRename, onDelete }: ConversationActionsP
           <Pen />
           {fa.sidebar.rename}
         </DropdownMenuItem>
+
         <DropdownMenuItem
-          className={
-            'text-destructive hover:bg-destructive/20! hover:text-destructive! focus:text-destructive!'
-          }
+          className="text-destructive hover:bg-destructive/20! hover:text-destructive! focus:text-destructive!"
           onClick={onDelete}
         >
-          <span>
-            <Trash className="hover:text-destructive! focus:text-destructive! text-destructive!" />
-          </span>
+          <Trash className="text-destructive!" />
           {fa.sidebar.delete}
         </DropdownMenuItem>
       </DropdownMenuContent>
