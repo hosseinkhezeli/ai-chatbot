@@ -121,7 +121,7 @@ function ChatMessage({ message }: { message: UIMessage }) {
 function ThinkingIndicator() {
   return (
     <MessageScrollerItem messageId="typing-indicator">
-      <Message>
+      <Message align="end">
         <MessageAvatar>
           <AiAvatar />
         </MessageAvatar>

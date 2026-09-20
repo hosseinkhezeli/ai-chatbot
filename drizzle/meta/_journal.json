@@ -36,6 +36,13 @@
       "when": 1789386329219,
       "tag": "0004_bright_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789913119164,
+      "tag": "0005_uneven_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }

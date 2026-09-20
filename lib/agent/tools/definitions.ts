@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { createMemoryTools } from './memory';
 
 const calculatorSchema = z.object({
   expression: z
@@ -220,14 +221,22 @@ export const webSearchTool = tool({
   },
 });
 
-export const tools = {
+const baseTools = {
   calculator: calculatorTool,
   dateTime: dateTimeTool,
   stringUtils: stringUtilsTool,
   webSearch: webSearchTool,
 } as const;
 
-export type ToolName = keyof typeof tools;
+export function createTools(userId: string) {
+  return {
+    ...baseTools,
+    ...createMemoryTools(userId),
+  };
+}
+
+export type Tools = ReturnType<typeof createTools>;
+export type ToolName = keyof Tools;
 
 function formatDate(date: Date, format: string): string {
   switch (format) {

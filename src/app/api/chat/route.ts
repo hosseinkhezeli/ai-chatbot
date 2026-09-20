@@ -117,6 +117,7 @@ export async function POST(req: Request): Promise<Response> {
 
   try {
     const result = await streamChat({
+      userId: user.id,
       messages: uiMessages,
       abortSignal: req.signal,
     });

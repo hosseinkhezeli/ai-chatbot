@@ -7,12 +7,14 @@ import type { AIClient } from '../ai';
 
 import { buildSystemPrompt } from './systemPrompt';
 import type { HarnessRuntimeContext } from './context';
-import { tools } from './tools';
+
+import { createTools } from './tools/definitions';
 
 const MAX_OUTPUT_TOKENS = 1024;
 const MAX_STEPS = 5;
 
 export type StreamChatParams = {
+  userId: string;
   messages: UIMessage[];
   abortSignal?: AbortSignal;
 
@@ -32,7 +34,7 @@ export type StreamChatParams = {
 };
 
 export async function streamChat(
-  { messages, abortSignal, system, context }: StreamChatParams,
+  { userId, messages, abortSignal, system, context }: StreamChatParams,
   client: AIClient = getAIClient(),
 ) {
   const modelMessages = await convertToModelMessages(messages);
@@ -42,7 +44,7 @@ export async function streamChat(
   const systemPrompt = system?.trim()
     ? `${baseSystemPrompt}\n\n## Additional Application Instructions\n${system.trim()}`
     : baseSystemPrompt;
-
+  const tools = createTools(userId);
   return client.streamText({
     model: 'chat',
     system: systemPrompt,
