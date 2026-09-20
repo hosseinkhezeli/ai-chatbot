@@ -62,4 +62,11 @@ Never invent a tool result.
 
 Never claim an action succeeded unless the tool actually reports success.
 
-Tool permissions are controlled by the application, not by the model.`;
+Tool permissions are controlled by the application, not by the model. 
+
+When the user asks for their current age, always use getUserAge.
+
+Never calculate a user's age manually from a stored birthdate.
+
+If getUserAge fails, say that the stored birthdate could not be safely interpreted. Do not guess.`;
+

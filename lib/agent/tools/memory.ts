@@ -56,6 +56,105 @@ const searchMemorySchema = z.object({
   limit: z.number().int().min(1).max(10).optional(),
 });
 
+function normalizeDigits(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+}
+
+const PERSIAN_MONTHS: Record<string, number> = {
+  فروردین: 1,
+  اردیبهشت: 2,
+  خرداد: 3,
+  تیر: 4,
+  مرداد: 5,
+  شهریور: 6,
+  مهر: 7,
+  آبان: 8,
+  آذر: 9,
+  دی: 10,
+  بهمن: 11,
+  اسفند: 12,
+};
+
+type PersianDate = {
+  year: number;
+  month: number;
+  day: number;
+};
+
+function parsePersianBirthdate(value: string): PersianDate | null {
+  const normalized = normalizeDigits(value).replace(/\s+/g, ' ').trim();
+
+  const namedMonthPattern = Object.keys(PERSIAN_MONTHS)
+    .map((month) => month.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
+
+  const namedMonthMatch = normalized.match(
+    new RegExp(`^(\\d{1,2})\\s+(${namedMonthPattern})\\s+(\\d{4})$`, 'u'),
+  );
+
+  if (namedMonthMatch) {
+    const day = Number(namedMonthMatch[1]);
+    const monthName = namedMonthMatch[2];
+    const year = Number(namedMonthMatch[3]);
+    const month = PERSIAN_MONTHS[monthName];
+
+    if (month && day >= 1 && day <= 31 && year >= 1) {
+      return { year, month, day };
+    }
+  }
+
+  const numericMatch = normalized.match(/^(?:روز\s+)?(\d{4})[-/]?(\d{1,2})[-/]?(\d{1,2})$/u);
+
+  if (numericMatch) {
+    const year = Number(numericMatch[1]);
+    const month = Number(numericMatch[2]);
+    const day = Number(numericMatch[3]);
+
+    if (year >= 1 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return { year, month, day };
+    }
+  }
+
+  return null;
+}
+
+function getCurrentPersianDate(): PersianDate {
+  const formatter = new Intl.DateTimeFormat('en-US-u-ca-persian', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    numberingSystem: 'latn',
+  });
+
+  const parts = formatter.formatToParts(new Date());
+
+  const year = Number(parts.find((part) => part.type === 'year')?.value);
+  const month = Number(parts.find((part) => part.type === 'month')?.value);
+  const day = Number(parts.find((part) => part.type === 'day')?.value);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    throw new Error('Failed to determine the current Persian date.');
+  }
+
+  return { year, month, day };
+}
+
+function calculateAge(birthdate: PersianDate, currentDate: PersianDate): number {
+  let age = currentDate.year - birthdate.year;
+
+  const birthdayHasNotOccurred =
+    currentDate.month < birthdate.month ||
+    (currentDate.month === birthdate.month && currentDate.day < birthdate.day);
+
+  if (birthdayHasNotOccurred) {
+    age -= 1;
+  }
+
+  return age;
+}
+
 export function createMemoryTools(userId: string) {
   return {
     saveMemory: tool({
@@ -109,6 +208,59 @@ export function createMemoryTools(userId: string) {
             success: false,
             error: 'Failed to search memory.',
             results: [],
+          };
+        }
+      },
+    }),
+
+    getUserAge: tool({
+      description:
+        'Calculate the authenticated user’s current age from their stored birthdate. Always use this tool when the user asks how old they are. Never calculate their age manually from memory.',
+
+      inputSchema: z.object({}),
+
+      execute: async () => {
+        try {
+          const results = await searchMemories(userId, 'birthdate', 10);
+
+          const birthdateMemory = results.find((memory) => memory.key === 'birthdate');
+
+          if (!birthdateMemory) {
+            return {
+              success: false,
+              error: 'Birthdate is not stored.',
+            };
+          }
+
+          const birthdate = parsePersianBirthdate(birthdateMemory.content);
+
+          if (!birthdate) {
+            return {
+              success: false,
+              error: 'Stored birthdate format could not be interpreted safely.',
+            };
+          }
+
+          const currentDate = getCurrentPersianDate();
+          const age = calculateAge(birthdate, currentDate);
+
+          if (age < 0 || age > 150) {
+            return {
+              success: false,
+              error: 'Calculated age is outside the valid range.',
+            };
+          }
+
+          return {
+            success: true,
+            age,
+            birthdate: birthdateMemory.content,
+            calendar: 'persian',
+          };
+        } catch {
+          return {
+            success: false,
+            error: 'Failed to calculate user age.',
           };
         }
       },
