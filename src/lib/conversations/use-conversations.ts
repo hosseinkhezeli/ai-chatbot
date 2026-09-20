@@ -122,27 +122,49 @@ export function useConversations(): UseConversationsResult {
     }
   }, []);
 
-  const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
-    if (!title.trim()) {
-      return;
-    }
+  const updateConversationTitle = useCallback(
+    async (conversationId: string, title: string) => {
+      const trimmedTitle = title.trim();
 
-    setError(null);
+      if (!trimmedTitle) {
+        return;
+      }
 
-    try {
-      const updatedConversation = await renameConversation(conversationId, title);
+      setError(null);
 
+      const previousConversation = conversations.find(
+        (conversation) => conversation.id === conversationId,
+      );
+
+      if (!previousConversation) {
+        return;
+      }
+
+      // Optimistic update
       setConversations((current) =>
         current.map((conversation) =>
-          conversation.id === conversationId ? updatedConversation : conversation,
+          conversation.id === conversationId
+            ? { ...conversation, title: trimmedTitle }
+            : conversation,
         ),
       );
-    } catch (error) {
-      console.error('Failed to rename conversation:', error);
-      setError(fa.errors.renameConversation);
-    }
-  }, []);
 
+      try {
+        await renameConversation(conversationId, trimmedTitle);
+      } catch (error) {
+        console.error('Failed to rename conversation:', error);
+        setError(fa.errors.renameConversation);
+
+        // Rollback
+        setConversations((current) =>
+          current.map((conversation) =>
+            conversation.id === conversationId ? previousConversation : conversation,
+          ),
+        );
+      }
+    },
+    [conversations],
+  );
   const retry = useCallback(() => {
     setReloadKey((value) => value + 1);
   }, []);

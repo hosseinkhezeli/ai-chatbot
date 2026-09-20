@@ -92,8 +92,8 @@ function ChatMessage({ message }: { message: UIMessage }) {
 
   return (
     <MessageScrollerItem messageId={message.id} scrollAnchor={isUser}>
-      <Message align={isUser ? 'end' : 'start'}>
-        <MessageContent className={isUser ? 'items-end' : 'items-start'}>
+      <Message align={!isUser ? 'end' : 'start'}>
+        <MessageContent className={!isUser ? 'items-end' : 'items-start'}>
           <Bubble variant={isUser ? 'default' : 'ghost'}>
             <BubbleContent>
               {message.parts
@@ -102,7 +102,11 @@ function ChatMessage({ message }: { message: UIMessage }) {
                   /* dir="auto" lets the browser resolve bidi from the content's
                      first strong character — a Persian sentence stays RTL, an
                      English/code snippet stays LTR, inside the same RTL bubble. */
-                  <span key={`${message.id}-${index}`} dir="auto" className="block whitespace-pre-wrap">
+                  <span
+                    key={`${message.id}-${index}`}
+                    dir="auto"
+                    className="block whitespace-pre-wrap"
+                  >
                     {part.text}
                   </span>
                 ))}
