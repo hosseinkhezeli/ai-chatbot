@@ -1,22 +1,28 @@
-import { careerStrategistV1 } from './prompts/career-strategist';
+import { buildRuntimeContext, type HarnessRuntimeContext } from './context';
+import { behaviorPrompt } from './prompts/behavior';
+import { identityPrompt } from './prompts/identity';
+import { memoryPrompt } from './prompts/memory';
+import { safetyPrompt } from './prompts/safety';
+import { toolsPrompt } from './prompts/tools';
+import { trustPrompt } from './prompts/trust';
 
-export type PersonaId = 'career-strategist';
+const CORE_PROMPTS: string[] = [
+  identityPrompt,
+  behaviorPrompt,
+  trustPrompt,
+  memoryPrompt,
+  toolsPrompt,
+  safetyPrompt,
+];
 
-const personas: Record<PersonaId, { version: string; text: string }> = {
-  'career-strategist': {
-    version: careerStrategistV1.version,
-    text: careerStrategistV1.text,
-  },
-};
+export function buildSystemPrompt(context?: HarnessRuntimeContext): string {
+  const sections = [...CORE_PROMPTS];
 
-export function buildSystemPrompt(personaId: PersonaId = 'career-strategist'): string {
-  const persona = personas[personaId];
+  const runtimeContext = buildRuntimeContext(context);
 
-  if (!persona) {
-    throw new Error(
-      `Unknown personaId: ${personaId}. Valid personas: ${Object.keys(personas).join(', ')}`,
-    );
+  if (runtimeContext) {
+    sections.push(runtimeContext);
   }
 
-  return persona.text;
+  return sections.join('\n\n');
 }

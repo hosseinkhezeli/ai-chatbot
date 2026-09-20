@@ -2,7 +2,9 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 const calculatorSchema = z.object({
-  expression: z.string().describe('Mathematical expression to evaluate (e.g., "2 + 2", "10 * 5", "(15 + 5) / 4")'),
+  expression: z
+    .string()
+    .describe('Mathematical expression to evaluate (e.g., "2 + 2", "10 * 5", "(15 + 5) / 4")'),
 });
 
 export const calculatorTool = tool({
@@ -13,7 +15,10 @@ export const calculatorTool = tool({
       // Safe evaluation: only allow numbers, operators, parentheses, and spaces
       const sanitized = expression.replace(/[^0-9+\-*/().\s]/g, '');
       if (sanitized !== expression) {
-        return { error: 'Expression contains invalid characters. Only numbers, +, -, *, /, (, ), and spaces allowed.' };
+        return {
+          error:
+            'Expression contains invalid characters. Only numbers, +, -, *, /, (, ), and spaces allowed.',
+        };
       }
 
       // Use Function constructor for safe evaluation (no eval)
@@ -35,12 +40,16 @@ const dateTimeSchema = z.object({
   format: z.string().optional().describe('Output format (e.g., "ISO", "locale", "unix")'),
   date: z.string().optional().describe('Input date (ISO 8601) for format/add/diff operations'),
   amount: z.number().optional().describe('Amount to add (for add operation)'),
-  unit: z.enum(['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years']).optional().describe('Time unit for add operation'),
+  unit: z
+    .enum(['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'])
+    .optional()
+    .describe('Time unit for add operation'),
   compareWith: z.string().optional().describe('Second date (ISO 8601) for diff operation'),
 });
 
 export const dateTimeTool = tool({
-  description: 'Get current date/time, format dates, add time intervals, or calculate differences between dates.',
+  description:
+    'Get current date/time, format dates, add time intervals, or calculate differences between dates.',
   inputSchema: dateTimeSchema,
   execute: async (params: z.infer<typeof dateTimeSchema>) => {
     try {
@@ -75,7 +84,8 @@ export const dateTimeTool = tool({
           }
           const a = new Date(date);
           const b = new Date(compareWith);
-          if (isNaN(a.getTime()) || isNaN(b.getTime())) return { error: 'Invalid date format. Use ISO 8601.' };
+          if (isNaN(a.getTime()) || isNaN(b.getTime()))
+            return { error: 'Invalid date format. Use ISO 8601.' };
           const diffMs = b.getTime() - a.getTime();
           return {
             milliseconds: diffMs,
@@ -96,14 +106,17 @@ export const dateTimeTool = tool({
 });
 
 const stringUtilsSchema = z.object({
-  operation: z.enum(['uppercase', 'lowercase', 'reverse', 'length', 'trim', 'count_words', 'replace']).describe('String operation to perform'),
+  operation: z
+    .enum(['uppercase', 'lowercase', 'reverse', 'length', 'trim', 'count_words', 'replace'])
+    .describe('String operation to perform'),
   text: z.string().describe('Input text to process'),
   search: z.string().optional().describe('Search string for replace operation'),
   replacement: z.string().optional().describe('Replacement string for replace operation'),
 });
 
 export const stringUtilsTool = tool({
-  description: 'Perform text transformations: case conversion, reversal, length, word count, or string replacement.',
+  description:
+    'Perform text transformations: case conversion, reversal, length, word count, or string replacement.',
   inputSchema: stringUtilsSchema,
   execute: async (params: z.infer<typeof stringUtilsSchema>) => {
     try {
@@ -126,7 +139,10 @@ export const stringUtilsTool = tool({
           return { result: text.trim(), length: text.trim().length };
 
         case 'count_words':
-          return { result: text.trim().split(/\s+/).filter(Boolean).length, words: text.trim().split(/\s+/).filter(Boolean).length };
+          return {
+            result: text.trim().split(/\s+/).filter(Boolean).length,
+            words: text.trim().split(/\s+/).filter(Boolean).length,
+          };
 
         case 'replace': {
           if (search === undefined || replacement === undefined) {
@@ -147,11 +163,18 @@ export const stringUtilsTool = tool({
 
 const webSearchSchema = z.object({
   query: z.string().describe('Search query (e.g., "Next.js 16 release date")'),
-  maxResults: z.number().int().min(1).max(10).optional().describe('Maximum number of results to return (default 5)'),
+  maxResults: z
+    .number()
+    .int()
+    .min(1)
+    .max(10)
+    .optional()
+    .describe('Maximum number of results to return (default 5)'),
 });
 
 export const webSearchTool = tool({
-  description: 'Search the internet for current information, news, documentation, or facts you are unsure about. Returns titles, URLs, and snippets.',
+  description:
+    'Search the internet for current information, news, documentation, or facts you are unsure about. Returns titles, URLs, and snippets.',
   inputSchema: webSearchSchema,
   execute: async (params: z.infer<typeof webSearchSchema>) => {
     const { query, maxResults = 5 } = params;
@@ -186,7 +209,11 @@ export const webSearchTool = tool({
         return { error: 'No results found. Try a different query.' };
       }
 
-      return { results };
+      return {
+        source: 'external',
+        authority: 'none',
+        results,
+      };
     } catch {
       return { error: 'Search failed. Try again later.' };
     }

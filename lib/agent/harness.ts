@@ -1,32 +1,51 @@
 import { convertToModelMessages, stepCountIs } from 'ai';
+
 import type { UIMessage } from 'ai';
 
 import { getAIClient } from '../ai';
 import type { AIClient } from '../ai';
+
+import { buildSystemPrompt } from './systemPrompt';
+import type { HarnessRuntimeContext } from './context';
 import { tools } from './tools';
 
 const MAX_OUTPUT_TOKENS = 1024;
-
-// AI SDK v5+ defaults stopWhen to stepCountIs(1), which runs the first model
-// step only — the tool executes but its result is never fed back. Allow up to
-// 5 steps so the model can call tools and then produce the final answer.
 const MAX_STEPS = 5;
 
 export type StreamChatParams = {
   messages: UIMessage[];
-  system: string;
   abortSignal?: AbortSignal;
+
+  /**
+   * Optional additional application instructions.
+   * Core harness behavior always comes from buildSystemPrompt().
+   */
+  system?: string;
+
+  /**
+   * Runtime context supplied by the application.
+   *
+   * This is intentionally optional until memory, thread retrieval,
+   * and conversation summarization are wired into the application.
+   */
+  context?: HarnessRuntimeContext;
 };
 
 export async function streamChat(
-  { messages, system, abortSignal }: StreamChatParams,
+  { messages, abortSignal, system, context }: StreamChatParams,
   client: AIClient = getAIClient(),
 ) {
   const modelMessages = await convertToModelMessages(messages);
 
+  const baseSystemPrompt = buildSystemPrompt(context);
+
+  const systemPrompt = system?.trim()
+    ? `${baseSystemPrompt}\n\n## Additional Application Instructions\n${system.trim()}`
+    : baseSystemPrompt;
+
   return client.streamText({
     model: 'chat',
-    system,
+    system: systemPrompt,
     messages: modelMessages,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
     abortSignal,

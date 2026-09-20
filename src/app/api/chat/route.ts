@@ -5,7 +5,6 @@ import type { UIMessage } from 'ai';
 import { and, eq } from 'drizzle-orm';
 
 import { streamChat } from '@agent/harness';
-import { buildSystemPrompt } from '@agent/systemPrompt';
 import { getRequiredCurrentUser } from '@/lib/auth/current-user';
 import { db } from '@/db/client';
 import { conversations, messages, toolCalls } from '@/db/schema';
@@ -119,7 +118,6 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const result = await streamChat({
       messages: uiMessages,
-      system: buildSystemPrompt(),
       abortSignal: req.signal,
     });
 
