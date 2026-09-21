@@ -1,6 +1,6 @@
 'use client';
 
-import type { ChatStatus, UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
 import { LoaderCircleIcon, XCircle } from 'lucide-react';
 
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
@@ -15,6 +15,8 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from '@/components/ui/message-scroller';
+
+import { TypewriterText } from './typewriter-text';
 
 import { fa } from '@/lib/i18n/fa';
 
@@ -87,8 +89,18 @@ function EmptyState() {
   );
 }
 
-function ChatMessage({ message }: { message: UIMessage }) {
+interface ChatMessageProps {
+  message: UIMessage;
+  isStreaming: boolean;
+  isLastMessage: boolean;
+}
+
+function ChatMessage({ message, isStreaming, isLastMessage }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const isAssistant = message.role === 'assistant';
+
+  // Only animate the last assistant message when actively streaming
+  const shouldTypewriter = isStreaming && isLastMessage && isAssistant;
 
   return (
     <MessageScrollerItem messageId={message.id} scrollAnchor={isUser}>
@@ -102,13 +114,21 @@ function ChatMessage({ message }: { message: UIMessage }) {
                   /* dir="auto" lets the browser resolve bidi from the content's
                      first strong character — a Persian sentence stays RTL, an
                      English/code snippet stays LTR, inside the same RTL bubble. */
-                  <span
-                    key={`${message.id}-${index}`}
-                    dir="auto"
-                    className="block whitespace-pre-wrap"
-                  >
-                    {part.text}
-                  </span>
+                  shouldTypewriter ? (
+                    <TypewriterText
+                      key={`${message.id}-${index}`}
+                      text={part.text}
+                      isStreaming={true}
+                    />
+                  ) : (
+                    <span
+                      key={`${message.id}-${index}`}
+                      dir="auto"
+                      className="block whitespace-pre-wrap"
+                    >
+                      {part.text}
+                    </span>
+                  )
                 ))}
             </BubbleContent>
           </Bubble>
@@ -122,57 +142,55 @@ function ThinkingIndicator() {
   return (
     <MessageScrollerItem messageId="typing-indicator">
       <Message align="end">
-        <MessageAvatar>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 14 32 4"
-            fill="hsl(228, 97%, 42%)"
-            preserveAspectRatio="none"
-          >
-            <path opacity="0.8" transform="translate(0 0)" d="M2 14 V18 H6 V14z">
-              <animateTransform
-                attributeName="transform"
-                type="translate"
-                values="0 0; 24 0; 0 0"
-                dur="2s"
-                begin="0"
-                repeatCount="indefinite"
-                keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-                calcMode="spline"
-              />
-            </path>
-            <path opacity="0.5" transform="translate(0 0)" d="M0 14 V18 H8 V14z">
-              <animateTransform
-                attributeName="transform"
-                type="translate"
-                values="0 0; 24 0; 0 0"
-                dur="2s"
-                begin="0.1s"
-                repeatCount="indefinite"
-                keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-                calcMode="spline"
-              />
-            </path>
-            <path opacity="0.25" transform="translate(0 0)" d="M0 14 V18 H8 V14z">
-              <animateTransform
-                attributeName="transform"
-                type="translate"
-                values="0 0; 24 0; 0 0"
-                dur="2s"
-                begin="0.2s"
-                repeatCount="indefinite"
-                keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-                calcMode="spline"
-              />
-            </path>
-          </svg>
-        </MessageAvatar>
-
         <MessageContent>
-          <Bubble variant="ghost">
+          <Bubble variant="ghost" className="flex flex-row items-center">
             <BubbleContent className="shimmer flex items-center gap-2 text-muted-foreground">
               <span>{fa.chat.thinking}</span>
             </BubbleContent>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 14 32 4"
+              fill="currentColor"
+              preserveAspectRatio="none"
+              className="w-16 h-2"
+            >
+              <path opacity="0.8" transform="translate(0 0)" d="M2 14 V18 H6 V14z">
+                <animateTransform
+                  attributeName="transform"
+                  type="translate"
+                  values="0 0; 24 0; 0 0"
+                  dur="2s"
+                  begin="0"
+                  repeatCount="indefinite"
+                  keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                  calcMode="spline"
+                />
+              </path>
+              <path opacity="0.5" transform="translate(0 0)" d="M0 14 V18 H8 V14z">
+                <animateTransform
+                  attributeName="transform"
+                  type="translate"
+                  values="0 0; 24 0; 0 0"
+                  dur="2s"
+                  begin="0.1s"
+                  repeatCount="indefinite"
+                  keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                  calcMode="spline"
+                />
+              </path>
+              <path opacity="0.25" transform="translate(0 0)" d="M0 14 V18 H8 V14z">
+                <animateTransform
+                  attributeName="transform"
+                  type="translate"
+                  values="0 0; 24 0; 0 0"
+                  dur="2s"
+                  begin="0.2s"
+                  repeatCount="indefinite"
+                  keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                  calcMode="spline"
+                />
+              </path>
+            </svg>
           </Bubble>
         </MessageContent>
       </Message>
@@ -217,7 +235,14 @@ export function ChatMessages({
             ) : messages.length === 0 ? (
               <EmptyState />
             ) : (
-              messages.map((message) => <ChatMessage key={message.id} message={message} />)
+              messages.map((message, index) => (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  isStreaming={isLoading}
+                  isLastMessage={isLoading && index === messages.length - 1}
+                />
+              ))
             )}
 
             {isLoading && <ThinkingIndicator />}
