@@ -4,8 +4,8 @@ import { GoogleAIClient } from './adapters/google';
 import type { AIClient } from './types';
 
 export const AI_PROVIDERS = {
-  gapgpt: GapGPTAIClient,
   google: GoogleAIClient,
+  gapgpt: GapGPTAIClient,
 } as const;
 
 export type AIProvider = keyof typeof AI_PROVIDERS;

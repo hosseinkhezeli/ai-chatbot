@@ -1,10 +1,77 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="256" fill="#000000"/>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 300 318"
+     width="300"
+     height="318">
+  <path
+    fill="#1b1c1a"
+    fill-rule="evenodd"
+    d="M202 67
+       L190 68
+       L205 82
+       L212 92
+       L220 108
+       L224 120
+       L228 139
+       L228 166
+       L224 186
+       L214 211
+       L205 225
+       L190 241
+       L205 240
+       L213 238
+       L227 232
+       L240 223
+       L253 210
+       L260 200
+       L267 186
+       L270 177
+       L273 158
+       L272 140
+       L268 124
+       L261 109
+       L252 96
+       L237 82
+       L226 75
+       L217 71
+       Z
 
-  <!-- Speech bubble -->
-  <path d="M128 180h256a48 48 0 0 1 48 48v112a48 48 0 0 1-48 48H192l-48 48v-48H128a48 48 0 0 1-48-48V228a48 48 0 0 1 48-48z" fill="#ffffff"/>
-
-  <!-- AI text -->
-  <text x="256" y="285" font-family="system-ui, sans-serif" font-size="120" font-weight="700" fill="#000000" text-anchor="middle" dominant-baseline="middle">AI</text>
+       M121 49
+       L104 53
+       L85 62
+       L70 73
+       L56 88
+       L48 100
+       L43 110
+       L37 127
+       L34 145
+       L34 164
+       L38 184
+       L47 206
+       L62 227
+       L74 238
+       L84 245
+       L98 252
+       L109 256
+       L124 259
+       L145 259
+       L160 256
+       L170 252
+       L183 245
+       L186 242
+       L163 242
+       L151 230
+       L142 216
+       L132 190
+       L129 175
+       L128 147
+       L130 130
+       L133 118
+       L140 99
+       L147 86
+       L162 66
+       L186 65
+       L171 56
+       L153 50
+       L147 49
+       Z" />
 </svg>
