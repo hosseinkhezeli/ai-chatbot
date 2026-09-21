@@ -69,7 +69,15 @@ export const fa = {
 
   auth: {
     signIn: 'ورود',
-    continueWithGithub: 'ادامه با GitHub',
+    continueWithGithub: 'ورود با گیت‌هاب',
+    continueWithGoogle: 'ورود با گوگل',
+    emailLabel: 'آدرس ایمیل',
+    emailPlaceholder: 'example@domain.com',
+    sendMagicLink: 'ارسال لینک ورود',
+    checkEmailTitle: 'لینک ورود ارسال شد',
+    checkEmailBody: 'لینک ورود برای <strong>{email}</strong> ارسال شد. لطفاً 받은‌باکس خود را بررسی کنید.',
+    backToSignIn: 'بازگشت به ورود',
+    magicLinkSent: 'اگر چند دقیقه‌ای صبر کردید و ایمیلی نیافتید، پوشه اسپم را بررسی کنید یا دوباره تلاش کنید.',
     errorTitle: 'خطای احراز هویت',
     tryAgain: 'تلاش دوباره',
     errors: {

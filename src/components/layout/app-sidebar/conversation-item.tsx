@@ -166,7 +166,6 @@ export function ConversationItem({
           onPointerCancel={handlePointerCancel}
           onClick={handleClick}
         >
-          <MessageSquare />
           <span className="truncate">{conversation.title ?? fa.sidebar.untitled}</span>
         </SidebarMenuButton>
       )}
