@@ -56,7 +56,7 @@ export function AuthForm({ callbackUrl }: { callbackUrl?: string }) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 lg:space-y-5 pt-4 lg:pt-6">
+      <CardContent className="space-y-4 lg:space-y-5 ">
         <div className="space-y-3">
           <form action={githubSignIn.bind(null, callbackUrl)}>
             <Button
@@ -109,15 +109,15 @@ export function AuthForm({ callbackUrl }: { callbackUrl?: string }) {
           </form>
         </div>
 
-        <div className="relative my-2 lg:my-4">
+        {/* <div className="relative my-2 lg:my-4">
           <Separator />
 
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card/95 backdrop-blur-sm px-3 text-xs font-medium text-muted-foreground">
             یا با ایمیل
           </div>
-        </div>
+        </div> */}
 
-        <form action={emailSignIn} className="space-y-4" noValidate>
+        {/* <form action={emailSignIn} className="space-y-4" noValidate>
           <div className="space-y-4">
             <Label htmlFor="email" className="text-sm font-medium text-foreground">
               {fa.auth.emailLabel}
@@ -147,8 +147,8 @@ export function AuthForm({ callbackUrl }: { callbackUrl?: string }) {
 
           <Button type="submit" className="w-full py-3 lg:py-3.5  rounded-xl">
             {fa.auth.sendMagicLink}
-          </Button>
-        </form>
+          </Button> */}
+        {/* </form> */}
 
         <p className="text-center text-xs text-muted-foreground pt-2 lg:pt-4">
           با ورود، تو{' '}

@@ -23,7 +23,7 @@ export function BrandPanel() {
         </div>
       </div>
 
-      <div className="relative z-10 flex max-w-lg flex-col items-center text-center space-y-8">
+      <div className="relative z-10 flex max-w-lg flex-col items-center text-center">
         {/* Logo placeholder */}
         <div
           className="flex flex-col h-26 w-26 items-center justify-center"
@@ -39,12 +39,12 @@ export function BrandPanel() {
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-sm leading-relaxed">
-            هوش مصنوعیِ اختصاصیِ تو — با سیستم‌پرامپت و ابزارهای خودت، نه پیش‌فرضِ فروشنده.
+            هر سوالی داشته باشی یه جوابی براش دارم!
           </p>
         </div>
 
         {/* Feature highlights */}
-        <div className="flex flex-wrap items-center justify-center gap-4 lg:gap-6 pt-4">
+        {/* <div className="flex flex-wrap items-center justify-center gap-4 lg:gap-6 pt-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Lock className="h-4 w-4 text-primary/70" aria-hidden="true" />
             <span>حریم‌خصوصی کامل</span>
@@ -57,7 +57,7 @@ export function BrandPanel() {
             <Sparkles className="h-4 w-4 text-primary/70" aria-hidden="true" />
             <span>استریم‌رو </span>
           </div>
-        </div>
+        </div> */}
 
         {/* Subtle decorative line */}
         <div className="relative w-full max-w-xs pt-8" aria-hidden="true">
