@@ -32,10 +32,10 @@ export const fa = {
     ariaAttach: 'پیوست فایل',
     ariaSend: 'ارسال پیام',
     offlineComposer: 'اتصال شما برقرار نیست — پیام‌ها پس از بازگشت اتصال ارسال می‌شوند.',
-    emptyPrompt: 'چطور می‌توانم کمکتان کنم؟',
     thinking: 'در حال فکر کردن…',
     loadingHistory: 'در حال بارگذاری گفت‌وگو…',
     retry: 'دوباره تلاش کنید',
+    emptyPrompt: 'چه کمکی از دستم برمیاد؟',
   },
 
   sidebar: {
@@ -75,9 +75,11 @@ export const fa = {
     emailPlaceholder: 'example@domain.com',
     sendMagicLink: 'ارسال لینک ورود',
     checkEmailTitle: 'لینک ورود ارسال شد',
-    checkEmailBody: 'لینک ورود برای <strong>{email}</strong> ارسال شد. لطفاً 받은‌باکس خود را بررسی کنید.',
+    checkEmailBody:
+      'لینک ورود برای <strong>{email}</strong> ارسال شد. لطفاً 받은‌باکس خود را بررسی کنید.',
     backToSignIn: 'بازگشت به ورود',
-    magicLinkSent: 'اگر چند دقیقه‌ای صبر کردید و ایمیلی نیافتید، پوشه اسپم را بررسی کنید یا دوباره تلاش کنید.',
+    magicLinkSent:
+      'اگر چند دقیقه‌ای صبر کردید و ایمیلی نیافتید، پوشه اسپم را بررسی کنید یا دوباره تلاش کنید.',
     errorTitle: 'خطای احراز هویت',
     tryAgain: 'تلاش دوباره',
     errors: {
@@ -112,7 +114,8 @@ export const fa = {
     queueOfflineMessage: 'شما آفلاین هستید. پیامت پس از بازگشت اتصال ارسال خواهد شد.',
     offlinePageTitle: 'اتصال آفلاین',
     offlinePageHeading: 'شما آفلاین هستید',
-    offlinePageBody: 'اتصال اینترنتی شناسایی نشد. لطفاً شبکه‌ی خود را بررسی کنید و دوباره تلاش کنید.',
+    offlinePageBody:
+      'اتصال اینترنتی شناسایی نشد. لطفاً شبکه‌ی خود را بررسی کنید و دوباره تلاش کنید.',
     offlinePageRetry: 'تلاش دوباره',
     offlinePageChecking: 'در حال بررسی اتصال…',
     offlinePageBackOnline: 'اتصال برقرار شد! در حال بارگذاری دوباره…',

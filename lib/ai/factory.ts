@@ -1,16 +1,18 @@
 import { GapGPTAIClient } from './adapters/gapgpt';
 import { GoogleAIClient } from './adapters/google';
+import { OpenRouterClient } from './adapters/openrouter';
 
 import type { AIClient } from './types';
 
 export const AI_PROVIDERS = {
   google: GoogleAIClient,
   gapgpt: GapGPTAIClient,
+  openrouter: OpenRouterClient,
 } as const;
 
 export type AIProvider = keyof typeof AI_PROVIDERS;
 
-const DEFAULT_PROVIDER: AIProvider = 'google';
+const DEFAULT_PROVIDER: AIProvider = 'openrouter';
 
 function getConfiguredProvider(): AIProvider {
   const value = process.env.AI_PROVIDER;

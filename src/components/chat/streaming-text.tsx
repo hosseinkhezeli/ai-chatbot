@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -66,8 +67,8 @@ export function StreamingText({ text, isStreaming }: StreamingTextProps) {
 
   return (
     <span
-      dir="auto"
-      className={`block whitespace-pre-wrap transition-all duration-150 ease-out ${
+      dir="ltr"
+      className={`min-w-full block whitespace-pre-wrap transition-all duration-150 ease-out ${
         isRevealing ? 'opacity-100' : 'opacity-100'
       }`}
       style={

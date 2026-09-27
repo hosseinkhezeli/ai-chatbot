@@ -73,18 +73,13 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 function EmptyState() {
   return (
-    <MessageScrollerItem messageId="empty" className="flex min-h-full items-center justify-center">
-      <Message align="start">
-        <MessageAvatar>
-          <AiAvatar />
-        </MessageAvatar>
-
-        <MessageContent>
-          <Bubble variant="ghost">
-            <BubbleContent>{fa.chat.emptyPrompt}</BubbleContent>
-          </Bubble>
-        </MessageContent>
-      </Message>
+    <MessageScrollerItem
+      messageId="empty"
+      className="flex min-h-svh items-center justify-center pb-16"
+    >
+      <h1 dir="auto" className="text-center text-3xl font-semibold tracking-tight text-foreground">
+        {fa.chat.emptyPrompt}
+      </h1>
     </MessageScrollerItem>
   );
 }
@@ -104,13 +99,13 @@ function ChatMessage({ message, isStreaming, isLastMessage }: ChatMessageProps) 
 
   return (
     <MessageScrollerItem messageId={message.id} scrollAnchor={isUser}>
-      <Message align={!isUser ? 'end' : 'start'}>
+      <Message align={'start'}>
         <MessageContent className={!isUser ? 'items-end' : 'items-start'}>
           <Bubble variant={isUser ? 'default' : 'ghost'}>
             <BubbleContent>
               {message.parts
                 .filter((part) => part.type === 'text')
-                .map((part, index) => (
+                .map((part, index) =>
                   /* dir="auto" lets the browser resolve bidi from the content's
                      first strong character — a Persian sentence stays RTL, an
                      English/code snippet stays LTR, inside the same RTL bubble. */
@@ -128,8 +123,8 @@ function ChatMessage({ message, isStreaming, isLastMessage }: ChatMessageProps) 
                     >
                       {part.text}
                     </span>
-                  )
-                ))}
+                  ),
+                )}
             </BubbleContent>
           </Bubble>
         </MessageContent>

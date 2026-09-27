@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface TypewriterTextProps {
   text: string;
@@ -89,7 +89,7 @@ export function TypewriterText({ text, isStreaming, speed = 1 }: TypewriterTextP
   }, []);
 
   return (
-    <span dir="auto" className="block whitespace-pre-wrap">
+    <span dir="auto" className="w-full block whitespace-pre-wrap">
       {displayText}
     </span>
   );
