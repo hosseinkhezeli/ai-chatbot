@@ -6,7 +6,7 @@ import { Check, Copy, Edit, LoaderCircleIcon, RotateCcw, XCircle } from 'lucide-
 
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
-import { Message, MessageContent } from '@/components/ui/message';
+import { Message, MessageContent, MessageFooter } from '@/components/ui/message';
 
 import {
   MessageScroller,
@@ -189,9 +189,9 @@ function ChatMessage({ message, isStreaming, isLastMessage, onRegenerate }: Chat
           </Bubble>
 
           {showActionRow && (
-            <div
+            <MessageFooter
               className={[
-                'flex items-center gap-1 transition-opacity duration-150',
+                'transition-opacity duration-150',
                 isUser ? 'justify-end' : 'justify-start',
                 'opacity-0 pointer-events-none',
                 'group-hover:pointer-events-auto group-hover:opacity-100',
@@ -230,7 +230,7 @@ function ChatMessage({ message, isStreaming, isLastMessage, onRegenerate }: Chat
                   <RotateCcw className="size-4" aria-hidden="true" />
                 </Button>
               )} */}
-            </div>
+            </MessageFooter>
           )}
         </MessageContent>
       </Message>

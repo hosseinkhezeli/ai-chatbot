@@ -53,7 +53,7 @@ export function ChatComposer({
         </p>
       )}
 
-      <InputGroup className="rounded-4xl py-1">
+      <InputGroup className="rounded-4xl md:py-1">
         <InputGroupTextarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -62,7 +62,7 @@ export function ChatComposer({
           rows={5}
           disabled={disabled}
           dir="auto"
-          className="resize-none max-h-[40svh] min-h-0 no-scrollbar"
+          className="resize-none max-h-[40svh] min-h-0! no-scrollbar"
           aria-label={fa.chat.ariaMessage}
           cols={33}
         />

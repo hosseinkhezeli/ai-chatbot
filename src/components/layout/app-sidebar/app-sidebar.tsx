@@ -3,7 +3,14 @@
 import { LoaderCircle, Plus } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/layout/user-menu';
 import { fa } from '@/lib/i18n/fa';
@@ -12,6 +19,7 @@ import { useConversations } from '@/lib/conversations/use-conversations';
 
 import { ConversationSearch } from './conversation-search';
 import { ConversationList } from './conversation-list';
+import Image from 'next/image';
 
 interface AppSidebarProps {
   activeConversationId: string | null;
@@ -81,6 +89,26 @@ export function AppSidebar({
   return (
     <Sidebar side="right" collapsible="offcanvas" className="border-e border-border/50 bg-muted/20">
       <SidebarHeader className="space-y-2 p-4">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center justify-start" style={{ filter: 'invert(1)' }}>
+              <Image
+                src={'/icons/icon.svg'}
+                alt="logo"
+                width={200}
+                height={200}
+                className="h-8 w-auto aspect-square"
+              />
+              <Image
+                src={'/logo-type.svg'}
+                alt="logo"
+                width={150}
+                height={50}
+                className="h-auto w-20"
+              />
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <Button
           variant="outline"
           className="h-10 w-full justify-start bg-background px-3 shadow-sm"
