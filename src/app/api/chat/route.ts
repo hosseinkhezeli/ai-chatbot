@@ -4,7 +4,7 @@ import { createUIMessageStreamResponse, toUIMessageStream } from 'ai';
 import type { UIMessage } from 'ai';
 import { and, eq } from 'drizzle-orm';
 
-import { streamChat } from '@agent/harness';
+import { streamChat, StreamChatExhaustedError } from '@agent/harness';
 import { getRequiredCurrentUser } from '@/lib/auth/current-user';
 import { db } from '@/db/client';
 import { conversations, messages, toolCalls } from '@/db/schema';
@@ -203,6 +203,20 @@ export async function POST(req: Request): Promise<Response> {
     });
   } catch (error) {
     console.error('Chat request failed:', error);
+
+    // Handle exhausted retries specifically
+    if (error instanceof StreamChatExhaustedError) {
+      const isRetryable = error.lastError !== null && error.lastError !== undefined;
+      return Response.json(
+        {
+          error: 'Failed to generate chat response after retries',
+          exhausted: true,
+          retryable: isRetryable,
+          attempts: error.attempts,
+        },
+        { status: 500 },
+      );
+    }
 
     return Response.json({ error: 'Failed to generate chat response' }, { status: 500 });
   }

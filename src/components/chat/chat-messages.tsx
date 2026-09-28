@@ -1,7 +1,7 @@
 'use client';
 
 import type { UIMessage } from 'ai';
-import { LoaderCircleIcon, XCircle } from 'lucide-react';
+import { LoaderCircleIcon, XCircle, RotateCcw, Edit } from 'lucide-react';
 
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,14 @@ import { TypewriterText } from './typewriter-text';
 
 import { fa } from '@/lib/i18n/fa';
 
+interface FailedTurn {
+  userMessageId: string;
+  userMessageText: string;
+  error: Error;
+  retryable: boolean;
+  attempts: number;
+}
+
 interface ChatMessagesProps {
   messages: UIMessage[];
   isLoading: boolean;
@@ -27,6 +35,9 @@ interface ChatMessagesProps {
   historyError: string | null;
   error: Error | undefined;
   onRetryHistory: () => void;
+  failedTurn: FailedTurn | null;
+  onRetry: () => void;
+  onEdit: () => void;
 }
 
 function AiAvatar() {
@@ -210,6 +221,46 @@ function MessageError() {
   );
 }
 
+function FailedTurnError({ onRetry, onEdit, retryable }: { onRetry: () => void; onEdit: () => void; retryable: boolean }) {
+  return (
+    <MessageScrollerItem messageId="failed-turn-error">
+      <Message>
+        <MessageContent>
+          <Bubble variant="destructive">
+            <BubbleContent dir="auto" className="flex flex-col gap-3">
+              <span>{fa.chat.regenerationFailed}</span>
+              <div className="flex items-center gap-2">
+                {retryable && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onRetry}
+                    aria-label={fa.chat.retryAriaLabel}
+                    className="gap-1.5"
+                  >
+                    <RotateCcw className="size-4" />
+                    {fa.chat.retryAction}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onEdit}
+                  aria-label={fa.chat.editAriaLabel}
+                  className="gap-1.5"
+                >
+                  <Edit className="size-4" />
+                  {fa.chat.editAction}
+                </Button>
+              </div>
+            </BubbleContent>
+          </Bubble>
+        </MessageContent>
+      </Message>
+    </MessageScrollerItem>
+  );
+}
+
 export function ChatMessages({
   messages,
   isLoading,
@@ -217,6 +268,9 @@ export function ChatMessages({
   historyError,
   error,
   onRetryHistory,
+  failedTurn,
+  onRetry,
+  onEdit,
 }: ChatMessagesProps) {
   return (
     <MessageScrollerProvider>
@@ -242,7 +296,11 @@ export function ChatMessages({
 
             {isLoading && <ThinkingIndicator />}
 
-            {error && <MessageError />}
+            {failedTurn ? (
+              <FailedTurnError onRetry={onRetry} onEdit={onEdit} retryable={failedTurn.retryable} />
+            ) : error ? (
+              <MessageError />
+            ) : null}
           </MessageScrollerContent>
         </MessageScrollerViewport>
 

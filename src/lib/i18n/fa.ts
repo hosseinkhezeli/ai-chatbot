@@ -36,6 +36,11 @@ export const fa = {
     loadingHistory: 'در حال بارگذاری گفت‌وگو…',
     retry: 'دوباره تلاش کنید',
     emptyPrompt: 'چه کمکی از دستم برمیاد؟',
+    regenerationFailed: 'تولید پاسخ با خطا مواجه شد.',
+    retryAction: 'تلاش مجدد',
+    editAction: 'ویرایش',
+    retryAriaLabel: 'دوباره تلاش کنید برای تولید پاسخ',
+    editAriaLabel: 'ویرایش پیام قبلی',
   },
 
   sidebar: {

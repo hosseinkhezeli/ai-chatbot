@@ -3,7 +3,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useNotifications } from '@/components/pwa/notification-manager';
@@ -14,6 +14,14 @@ import { fa } from '@/lib/i18n/fa';
 
 import { ChatComposer } from './chat-composer';
 import { ChatMessages } from './chat-messages';
+
+interface FailedTurn {
+  userMessageId: string;
+  userMessageText: string;
+  error: Error;
+  retryable: boolean;
+  attempts: number;
+}
 
 interface PersistedMessage {
   id: string;
@@ -103,6 +111,7 @@ interface ChatProps {
 
 export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
   const [input, setInput] = useState('');
+  const [failedTurn, setFailedTurn] = useState<FailedTurn | null>(null);
 
   const { isOnline } = useOnlineStatus();
   const { notifyCompletion } = useNotifications();
@@ -126,13 +135,19 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
    */
   const newlyCreatedConversationIdRef = useRef<string | null>(null);
 
-  const { messages, sendMessage, setMessages, status, error } = useChat({
+  const { messages, sendMessage, setMessages, status, error, regenerate } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
 
     onFinish: (event) => {
+      // Clear failed turn on successful completion
+      if (!event.isError) {
+        setFailedTurn(null);
+      }
+
       if (event.isError) {
+        // The error will be handled by onError callback
         return;
       }
 
@@ -143,6 +158,41 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
           .join(' ') ?? '';
 
       void notifyCompletion(preview);
+    },
+
+    onError: (error) => {
+      // Extract error details from the AI SDK error
+      const aiError = error as Error & {
+        response?: Response;
+        body?: { exhausted?: boolean; retryable?: boolean; attempts?: number };
+      };
+
+      let retryable = false;
+      let attempts = 0;
+
+      if (aiError.body?.exhausted) {
+        retryable = aiError.body.retryable ?? false;
+        attempts = aiError.body.attempts ?? 0;
+      }
+
+      // Find the last user message that triggered this error
+      const userMessages = messages.filter((m) => m.role === 'user');
+      const lastUserMessage = userMessages[userMessages.length - 1];
+
+      if (lastUserMessage) {
+        const userText = lastUserMessage.parts
+          .filter((p) => p.type === 'text')
+          .map((p) => p.text)
+          .join(' ');
+
+        setFailedTurn({
+          userMessageId: lastUserMessage.id,
+          userMessageText: userText,
+          error: aiError,
+          retryable,
+          attempts,
+        });
+      }
     },
   });
 
@@ -268,6 +318,38 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
     setHistoryRetryToken((token) => token + 1);
   }
 
+  const handleRetry = useCallback(async () => {
+    if (!failedTurn || isLoading) return;
+
+    // Clear the failed turn state; regenerate will re-send the last request
+    setFailedTurn(null);
+
+    // Use AI SDK's regenerate to retry the same request
+    // This does NOT create a new user message - it regenerates the assistant response
+    await regenerate();
+  }, [failedTurn, isLoading, regenerate]);
+
+  const handleEdit = useCallback(() => {
+    if (!failedTurn || isLoading) return;
+
+    // Put the failed user message text back into the composer
+    // Remove the failed assistant message (if any) and let user edit
+    setInput(failedTurn.userMessageText);
+
+    // Remove the last user message from the chat so it can be re-sent
+    // This effectively replaces the failed turn with a new attempt
+    setMessages((current) => {
+      // Find and remove the last user message and any subsequent assistant message
+      const lastUserIndex = current.findLastIndex((m) => m.role === 'user');
+      if (lastUserIndex === -1) return current;
+
+      // Keep messages before the last user message
+      return current.slice(0, lastUserIndex);
+    });
+
+    setFailedTurn(null);
+  }, [failedTurn, isLoading, setMessages]);
+
   return (
     <main className="flex h-[calc(100svh-64px)] md:h-svh flex-col">
       <OfflineIndicator />
@@ -280,6 +362,9 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
           historyError={historyError}
           error={error}
           onRetryHistory={handleRetryHistory}
+          failedTurn={failedTurn}
+          onRetry={handleRetry}
+          onEdit={handleEdit}
         />
 
         <ChatComposer
