@@ -9,6 +9,8 @@ import {
   type MemoryType,
 } from '../memory';
 
+import { withRetry, isRetryableError } from '../retry';
+
 const saveMemorySchema = z.object({
   type: z
     .enum([
@@ -164,28 +166,33 @@ export function createMemoryTools(userId: string) {
       inputSchema: saveMemorySchema,
 
       execute: async (params) => {
-        try {
-          const result = await saveMemory({
-            userId,
-            type: params.type as MemoryType,
-            key: params.key,
-            content: params.content,
-            source: params.source as MemorySource,
-            confidence: params.confidence,
-            sensitivity: params.sensitivity as MemorySensitivity,
-          });
+        // Retry transient DB errors; permanent/validation errors are thrown and caught below
+        const result = await withRetry(
+          async () => {
+            return saveMemory({
+              userId,
+              type: params.type as MemoryType,
+              key: params.key,
+              content: params.content,
+              source: params.source as MemorySource,
+              confidence: params.confidence,
+              sensitivity: params.sensitivity as MemorySensitivity,
+            });
+          },
+          {
+            maxAttempts: 4,
+            isRetryable: isRetryableError,
+            onRetry: (error, attempt, delayMs) => {
+              console.log(`[saveMemory] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`, error instanceof Error ? error.message : String(error));
+            },
+          },
+        );
 
-          return {
-            success: true,
-            action: result.action,
-            memory: result.memory,
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Failed to store memory.',
-          };
-        }
+        return {
+          success: true,
+          action: result.action,
+          memory: result.memory,
+        };
       },
     }),
 
@@ -196,20 +203,22 @@ export function createMemoryTools(userId: string) {
       inputSchema: searchMemorySchema,
 
       execute: async ({ query, limit = 5 }) => {
-        try {
-          const results = await searchMemories(userId, query, limit);
+        // Retry transient DB errors; permanent/validation errors are thrown and caught below
+        const results = await withRetry(
+          async () => searchMemories(userId, query, limit),
+          {
+            maxAttempts: 4,
+            isRetryable: isRetryableError,
+            onRetry: (error, attempt, delayMs) => {
+              console.log(`[searchMemory] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`, error instanceof Error ? error.message : String(error));
+            },
+          },
+        );
 
-          return {
-            success: true,
-            results,
-          };
-        } catch {
-          return {
-            success: false,
-            error: 'Failed to search memory.',
-            results: [],
-          };
-        }
+        return {
+          success: true,
+          results,
+        };
       },
     }),
 
@@ -220,49 +229,52 @@ export function createMemoryTools(userId: string) {
       inputSchema: z.object({}),
 
       execute: async () => {
-        try {
-          const results = await searchMemories(userId, 'birthdate', 10);
+        // Retry transient DB errors for the search
+        const results = await withRetry(
+          async () => searchMemories(userId, 'birthdate', 10),
+          {
+            maxAttempts: 4,
+            isRetryable: isRetryableError,
+            onRetry: (error, attempt, delayMs) => {
+              console.log(`[getUserAge] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`, error instanceof Error ? error.message : String(error));
+            },
+          },
+        );
 
-          const birthdateMemory = results.find((memory) => memory.key === 'birthdate');
+        const birthdateMemory = results.find((memory) => memory.key === 'birthdate');
 
-          if (!birthdateMemory) {
-            return {
-              success: false,
-              error: 'Birthdate is not stored.',
-            };
-          }
-
-          const birthdate = parsePersianBirthdate(birthdateMemory.content);
-
-          if (!birthdate) {
-            return {
-              success: false,
-              error: 'Stored birthdate format could not be interpreted safely.',
-            };
-          }
-
-          const currentDate = getCurrentPersianDate();
-          const age = calculateAge(birthdate, currentDate);
-
-          if (age < 0 || age > 150) {
-            return {
-              success: false,
-              error: 'Calculated age is outside the valid range.',
-            };
-          }
-
-          return {
-            success: true,
-            age,
-            birthdate: birthdateMemory.content,
-            calendar: 'persian',
-          };
-        } catch {
+        if (!birthdateMemory) {
           return {
             success: false,
-            error: 'Failed to calculate user age.',
+            error: 'Birthdate is not stored.',
           };
         }
+
+        const birthdate = parsePersianBirthdate(birthdateMemory.content);
+
+        if (!birthdate) {
+          return {
+            success: false,
+            error: 'Stored birthdate format could not be interpreted safely.',
+          };
+        }
+
+        const currentDate = getCurrentPersianDate();
+        const age = calculateAge(birthdate, currentDate);
+
+        if (age < 0 || age > 150) {
+          return {
+            success: false,
+            error: 'Calculated age is outside the valid range.',
+          };
+        }
+
+        return {
+          success: true,
+          age,
+          birthdate: birthdateMemory.content,
+          calendar: 'persian',
+        };
       },
     }),
   };

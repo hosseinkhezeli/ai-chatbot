@@ -35,6 +35,23 @@ function isValidUuid(value: unknown): value is string {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function generateTitleFromMessage(parts: UIMessage['parts']): string {
+  const textParts = parts
+    .filter((part) => part.type === 'text')
+    .map((part) => part.text)
+    .join(' ');
+
+  const normalized = textParts.trim().replace(/\s+/g, ' ');
+
+  if (!normalized) {
+    return 'New Conversation';
+  }
+
+  const words = normalized.split(' ');
+
+  return words.slice(0, 3).join(' ');
+}
+
 export async function POST(req: Request): Promise<Response> {
   let user;
 
@@ -89,12 +106,21 @@ export async function POST(req: Request): Promise<Response> {
       }
 
       conversationIdFinal = conversation.id;
+
+      await db.insert(messages).values({
+        conversationId: conversationIdFinal,
+        role: 'user',
+        content: lastMessage.parts,
+      });
     } else {
+      // Generate title from first user message (first 3 words)
+      const title = generateTitleFromMessage(lastMessage.parts);
+
       const [conversation] = await db
         .insert(conversations)
         .values({
           userId: user.id,
-          title: null,
+          title,
           systemPromptVersion: 'v1',
         })
         .returning({
@@ -102,13 +128,13 @@ export async function POST(req: Request): Promise<Response> {
         });
 
       conversationIdFinal = conversation.id;
-    }
 
-    await db.insert(messages).values({
-      conversationId: conversationIdFinal,
-      role: 'user',
-      content: lastMessage.parts,
-    });
+      await db.insert(messages).values({
+        conversationId: conversationIdFinal,
+        role: 'user',
+        content: lastMessage.parts,
+      });
+    }
   } catch (error) {
     console.error('Failed to persist user message:', error);
 
@@ -198,9 +224,15 @@ export async function POST(req: Request): Promise<Response> {
       },
     });
 
-    return createUIMessageStreamResponse({
+    // Include conversation ID in response header so client can capture it
+    // for new conversations created from the first message
+    const response = createUIMessageStreamResponse({
       stream,
     });
+
+    response.headers.set('x-conversation-id', conversationIdFinal);
+
+    return response;
   } catch (error) {
     console.error('Chat request failed:', error);
 

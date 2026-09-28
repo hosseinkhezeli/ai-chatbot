@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
@@ -14,6 +15,25 @@ import { fa } from '@/lib/i18n/fa';
 
 import { ChatComposer } from './chat-composer';
 import { ChatMessages } from './chat-messages';
+
+/**
+ * Creates a custom fetch function that captures the x-conversation-id header
+ * from the response. This is used when a new conversation is created from the first message.
+ */
+function createConversationTrackingFetch(
+  conversationIdCallback: (id: string) => void
+): typeof fetch {
+  return async (input: RequestInfo | URL, init?: RequestInit) => {
+    const response = await fetch(input, init);
+
+    const conversationId = response.headers.get('x-conversation-id');
+    if (conversationId) {
+      conversationIdCallback(conversationId);
+    }
+
+    return response;
+  };
+}
 
 interface FailedTurn {
   userMessageId: string;
@@ -123,21 +143,27 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
   const [historyRetryToken, setHistoryRetryToken] = useState(0);
 
   /*
-   * Stores only the ID of a conversation that was created by
-   * the current first-message flow.
-   *
-   * When AppShell changes:
-   *
-   *   null -> newConversationId
-   *
-   * we do not want the history effect to immediately clear the
-   * optimistic/local messages and fetch the conversation again.
+   * Stores the ID of a conversation that was created by the first-message flow.
+   * Used to prevent the history effect from clearing optimistic messages.
    */
   const newlyCreatedConversationIdRef = useRef<string | null>(null);
+
+  // Custom fetch that captures the conversation ID from response headers
+  // Use useRef to maintain stable reference across renders
+  const trackingFetchRef = useRef<typeof fetch | null>(null);
+
+  useEffect(() => {
+    if (!trackingFetchRef.current) {
+      trackingFetchRef.current = createConversationTrackingFetch((id: string) => {
+        newlyCreatedConversationIdRef.current = id;
+      });
+    }
+  }, []);
 
   const { messages, sendMessage, setMessages, status, error, regenerate } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
+      fetch: trackingFetchRef.current ?? fetch,
     }),
 
     onFinish: (event) => {
@@ -290,16 +316,17 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
 
     setInput('');
 
-    /*
-     * This is the critical part:
-     *
-     * The returned ID is the authoritative ID for this request.
-     * We do NOT wait for React state to update.
-     */
     const { id: targetConversationId, isNew } = await onEnsureConversation();
 
+    // Prepare body - only include conversationId if we have one
+    const body: Record<string, unknown> = {};
+    if (targetConversationId) {
+      body.conversationId = targetConversationId;
+    }
+
     if (isNew) {
-      newlyCreatedConversationIdRef.current = targetConversationId;
+      // For new conversations, the ID will be captured from the response header
+      // via ConversationTrackingTransport. We'll set the ref after the request completes.
     }
 
     await sendMessage(
@@ -307,11 +334,17 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
         text,
       },
       {
-        body: {
-          conversationId: targetConversationId,
-        },
+        body,
       },
     );
+
+    // If this was a new conversation, the ID was captured via the transport
+    // Trigger sidebar refresh to show the new conversation
+    if (isNew && newlyCreatedConversationIdRef.current) {
+      window.dispatchEvent(new CustomEvent('conversation-created', {
+        detail: { conversationId: newlyCreatedConversationIdRef.current },
+      }));
+    }
   }
 
   function handleRetryHistory() {

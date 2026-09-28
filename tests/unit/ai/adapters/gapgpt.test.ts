@@ -108,7 +108,7 @@ describe('GapGPTAIClient', () => {
     expect(callArgs.messages).toEqual([{ role: 'user', content: 'Hello' }]);
     expect(callArgs.maxOutputTokens).toBe(512);
     expect(callArgs.abortSignal).toBe(abortSignal);
-    expect(callArgs.maxRetries).toBe(0);
+    expect(callArgs.maxRetries).toBe(3); // 1 initial + 3 retries
   });
 
   it('includes onError handler', async () => {

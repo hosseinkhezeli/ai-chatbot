@@ -1,6 +1,7 @@
 'use client';
 
 import { LoaderCircle, Plus } from 'lucide-react';
+import { useEffect } from 'react';
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { ConversationList } from './conversation-list';
 
 interface AppSidebarProps {
   activeConversationId: string | null;
-  onConversationSelect: (conversationId: string) => void;
+  onConversationSelect: (conversationId: string | null) => void;
   onConversationDeleted: (deletedId: string) => void;
 }
 
@@ -43,18 +44,26 @@ export function AppSidebar({
     error,
     searchQuery,
     setSearchQuery,
-    createNewConversation,
     removeConversation,
     updateConversationTitle,
     retry,
   } = useConversations();
 
-  const handleNewChat = async () => {
-    const conversation = await createNewConversation();
-
-    if (conversation) {
-      onConversationSelect(conversation.id);
+  // Refresh conversation list when a new conversation is created from the first message
+  useEffect(() => {
+    function handleConversationCreated() {
+      retry();
     }
+
+    window.addEventListener('conversation-created', handleConversationCreated);
+
+    return () => {
+      window.removeEventListener('conversation-created', handleConversationCreated);
+    };
+  }, [retry]);
+
+  const handleNewChat = () => {
+    onConversationSelect(null);
   };
 
   const handleDelete = async (conversationId: string) => {

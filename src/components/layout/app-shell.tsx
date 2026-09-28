@@ -2,6 +2,7 @@
 
 import { SessionProvider } from 'next-auth/react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { useEffect } from 'react';
 
 import { AppSidebar } from '@/components/layout/app-sidebar/app-sidebar';
 import { Chat } from '@/components/chat/chat';
@@ -18,6 +19,23 @@ function AppContent() {
     ensureConversation,
     handleConversationDeleted,
   } = useActiveConversation();
+
+  // Listen for conversation-created event from Chat component
+  // and select the new conversation so it becomes active
+  useEffect(() => {
+    if (!isReady) return;
+
+    function handleConversationCreated(event: CustomEvent<{ conversationId: string }>) {
+      const { conversationId } = event.detail;
+      selectConversation(conversationId);
+    }
+
+    window.addEventListener('conversation-created', handleConversationCreated as EventListener);
+
+    return () => {
+      window.removeEventListener('conversation-created', handleConversationCreated as EventListener);
+    };
+  }, [isReady, selectConversation]);
 
   if (!isReady) {
     return null;

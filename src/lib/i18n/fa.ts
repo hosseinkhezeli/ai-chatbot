@@ -20,9 +20,9 @@ export const fa = {
   },
 
   meta: {
-    title: 'چت‌بات هوش مصنوعی',
-    description: 'یک رابط چت هوش مصنوعی، خودمیزبان، با پاسخ‌های جریانی',
-    appleWebAppTitle: 'چت هوش مصنوعی',
+    title: 'Noren',
+    description: 'یک رابط چت هوش مصنوعی Noren، خودمیزبان، با پاسخ‌های جریانی',
+    appleWebAppTitle: 'Noren',
   },
 
   chat: {
@@ -44,12 +44,12 @@ export const fa = {
   },
 
   sidebar: {
-    newChat: 'چت جدید',
+    newChat: 'گفت‌وگوی جدید',
     creating: 'در حال ایجاد…',
     searchPlaceholder: 'جست‌وجو…',
     untitled: 'بدون عنوان',
     emptyTitle: 'هنوز گفت‌وگویی ندارید',
-    emptyHint: 'برای شروع، روی «چت جدید» بزنید',
+    emptyHint: 'برای شروع، روی «گفت‌وگوی جدید» بزنید',
     confirmDelete: 'این گفت‌وگو حذف شود؟',
     rename: 'تغییر نام',
     delete: 'حذف',
@@ -105,7 +105,7 @@ export const fa = {
     updateAvailable: 'نسخه‌ی جدیدی در دسترس است.',
     update: 'بروزرسانی',
     dismissUpdate: 'رد کردن بروزرسانی',
-    installTitle: 'نصب چت‌بات هوش مصنوعی',
+    installTitle: 'نصب هوش‌مصنوعی نورن',
     installDescription: 'برای دسترسی سریع‌تر و پشتیبانی آفلاین، به صفحه‌ی اصلی اضافه کنید.',
     install: 'نصب',
     notNow: 'بعداً',
@@ -114,7 +114,7 @@ export const fa = {
     notificationDismiss: 'رد کردن',
     responseReadyTitle: 'پاسخ آماده است',
     responseReadyBody: 'دستیار هوش مصنوعی شما پاسخ داد.',
-    pushDefaultTitle: 'چت‌بات هوش مصنوعی',
+    pushDefaultTitle: 'هوش‌مصنوعی نورن',
     pushDefaultBody: 'پیام جدیدی دریافت شد.',
     queueOfflineMessage: 'شما آفلاین هستید. پیامت پس از بازگشت اتصال ارسال خواهد شد.',
     offlinePageTitle: 'اتصال آفلاین',

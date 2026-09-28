@@ -39,7 +39,7 @@ export class GapGPTAIClient extends BaseAIClient {
       abortSignal,
       tools,
       stopWhen,
-      maxRetries: 0,
+      maxRetries: 3, // 1 initial + 3 retries
 
       onError({ error }) {
         console.error('GapGPT stream error:', error);

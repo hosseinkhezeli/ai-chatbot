@@ -1,10 +1,9 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-import { createConversation, getConversation } from './conversations-api';
-import type { Conversation } from './conversations.types';
+import { getConversation } from './conversations-api';
 
 const ACTIVE_CONVERSATION_KEY = 'activeConversationId';
 
@@ -29,7 +28,7 @@ function storeConversationId(id: string | null) {
 }
 
 export interface EnsuredConversation {
-  id: string;
+  id: string | null;
   isNew: boolean;
 }
 
@@ -48,8 +47,6 @@ export function useActiveConversation(): UseActiveConversationResult {
   const [activeConversationTitle, setActiveConversationTitle] = useState<string | null>(null);
 
   const [isReady, setIsReady] = useState(false);
-
-  const creationPromiseRef = useRef<Promise<Conversation> | null>(null);
 
   useEffect(() => {
     const storedId = readStoredConversationId();
@@ -116,37 +113,12 @@ export function useActiveConversation(): UseActiveConversationResult {
       };
     }
 
-    /*
-     * If multiple sends happen before React commits the new state,
-     * reuse the same creation request.
-     */
-    if (creationPromiseRef.current) {
-      const conversation = await creationPromiseRef.current;
-
-      return {
-        id: conversation.id,
-        isNew: false,
-      };
-    }
-
-    const creationPromise = createConversation();
-
-    creationPromiseRef.current = creationPromise;
-
-    try {
-      const conversation = await creationPromise;
-
-      setActiveConversationId(conversation.id);
-      setActiveConversationTitle(conversation.title);
-      storeConversationId(conversation.id);
-
-      return {
-        id: conversation.id,
-        isNew: true,
-      };
-    } finally {
-      creationPromiseRef.current = null;
-    }
+    // No active conversation — signal that a new one needs to be created
+    // by the first message sent to /api/chat
+    return {
+      id: null,
+      isNew: true,
+    };
   }, [activeConversationId]);
 
   const handleConversationDeleted = useCallback(
