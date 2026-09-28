@@ -1,11 +1,12 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import type { UIMessage } from 'ai';
-import { LoaderCircleIcon, XCircle, RotateCcw, Edit } from 'lucide-react';
+import { Check, Copy, Edit, LoaderCircleIcon, RotateCcw, XCircle } from 'lucide-react';
 
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
-import { Message, MessageAvatar, MessageContent } from '@/components/ui/message';
+import { Message, MessageContent } from '@/components/ui/message';
 
 import {
   MessageScroller,
@@ -19,6 +20,7 @@ import {
 import { TypewriterText } from './typewriter-text';
 
 import { fa } from '@/lib/i18n/fa';
+import { cn } from 'cn';
 
 interface FailedTurn {
   userMessageId: string;
@@ -38,6 +40,7 @@ interface ChatMessagesProps {
   failedTurn: FailedTurn | null;
   onRetry: () => void;
   onEdit: () => void;
+  onRegenerate: (messageId: string) => void;
 }
 
 function AiAvatar() {
@@ -56,7 +59,6 @@ function LoadingState() {
     >
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
-
         <span>{fa.chat.loadingHistory}</span>
       </div>
     </MessageScrollerItem>
@@ -99,27 +101,74 @@ interface ChatMessageProps {
   message: UIMessage;
   isStreaming: boolean;
   isLastMessage: boolean;
+  onRegenerate: (messageId: string) => void;
 }
 
-function ChatMessage({ message, isStreaming, isLastMessage }: ChatMessageProps) {
+function ChatMessage({ message, isStreaming, isLastMessage, onRegenerate }: ChatMessageProps) {
+  const [copied, setCopied] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
 
-  // Only animate the last assistant message when actively streaming
+  const text = message.parts
+    .filter((part) => part.type === 'text')
+    .map((part) => part.text)
+    .join('\n');
+
   const shouldTypewriter = isStreaming && isLastMessage && isAssistant;
 
+  const handleCopy = async () => {
+    if (!text) return;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 1500);
+    } catch {
+      // Clipboard access can fail in restricted/browser environments.
+    }
+  };
+
+  const startLongPress = (event: React.PointerEvent) => {
+    if (event.pointerType !== 'touch') return;
+
+    longPressTimer.current = setTimeout(() => {
+      setShowActions(true);
+    }, 500);
+  };
+
+  const cancelLongPress = () => {
+    if (!longPressTimer.current) return;
+
+    clearTimeout(longPressTimer.current);
+    longPressTimer.current = null;
+  };
+
+  const showActionRow = Boolean(text) && (!isAssistant || !isStreaming);
+
   return (
-    <MessageScrollerItem messageId={message.id} scrollAnchor={isUser}>
-      <Message align={'start'}>
-        <MessageContent className={!isUser ? 'items-end' : 'items-start'}>
+    <MessageScrollerItem
+      messageId={message.id}
+      scrollAnchor={isUser}
+      className="group"
+      onPointerDown={startLongPress}
+      onPointerUp={cancelLongPress}
+      onPointerCancel={cancelLongPress}
+      onPointerLeave={cancelLongPress}
+    >
+      <Message align="start">
+        <MessageContent className="items-start">
           <Bubble variant={isUser ? 'default' : 'ghost'}>
             <BubbleContent>
               {message.parts
                 .filter((part) => part.type === 'text')
                 .map((part, index) =>
-                  /* dir="auto" lets the browser resolve bidi from the content's
-                     first strong character — a Persian sentence stays RTL, an
-                     English/code snippet stays LTR, inside the same RTL bubble. */
                   shouldTypewriter ? (
                     <TypewriterText
                       key={`${message.id}-${index}`}
@@ -138,6 +187,51 @@ function ChatMessage({ message, isStreaming, isLastMessage }: ChatMessageProps) 
                 )}
             </BubbleContent>
           </Bubble>
+
+          {showActionRow && (
+            <div
+              className={[
+                'flex items-center gap-1 transition-opacity duration-150',
+                isUser ? 'justify-end' : 'justify-start',
+                'opacity-0 pointer-events-none',
+                'group-hover:pointer-events-auto group-hover:opacity-100',
+                'group-focus-within:pointer-events-auto group-focus-within:opacity-100',
+                showActions && 'pointer-events-auto opacity-100',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={handleCopy}
+                aria-label={copied ? 'Copied' : 'Copy message'}
+                title={copied ? 'Copied' : 'Copy message'}
+              >
+                {copied ? (
+                  <Check className="size-4" aria-hidden="true" />
+                ) : (
+                  <Copy className="size-4" aria-hidden="true" />
+                )}
+              </Button>
+
+              {/* {isAssistant && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={() => onRegenerate(message.id)}
+                  aria-label="Regenerate response"
+                  title="Regenerate response"
+                >
+                  <RotateCcw className="size-4" aria-hidden="true" />
+                </Button>
+              )} */}
+            </div>
+          )}
         </MessageContent>
       </Message>
     </MessageScrollerItem>
@@ -153,12 +247,13 @@ function ThinkingIndicator() {
             <BubbleContent className="shimmer flex items-center gap-2 text-muted-foreground">
               <span>{fa.chat.thinking}</span>
             </BubbleContent>
+
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 14 32 4"
               fill="currentColor"
               preserveAspectRatio="none"
-              className="w-16 h-2"
+              className="h-2 w-16"
             >
               <path opacity="0.8" transform="translate(0 0)" d="M2 14 V18 H6 V14z">
                 <animateTransform
@@ -172,6 +267,7 @@ function ThinkingIndicator() {
                   calcMode="spline"
                 />
               </path>
+
               <path opacity="0.5" transform="translate(0 0)" d="M0 14 V18 H8 V14z">
                 <animateTransform
                   attributeName="transform"
@@ -184,6 +280,7 @@ function ThinkingIndicator() {
                   calcMode="spline"
                 />
               </path>
+
               <path opacity="0.25" transform="translate(0 0)" d="M0 14 V18 H8 V14z">
                 <animateTransform
                   attributeName="transform"
@@ -205,9 +302,6 @@ function ThinkingIndicator() {
 }
 
 function MessageError() {
-  /* error.message can carry raw technical detail (provider errors, stack-like
-     text) — users get a clean Persian message instead; the original error is
-     still logged client-side via the AI SDK and server-side in the route. */
   return (
     <MessageScrollerItem messageId="message-error">
       <Message>
@@ -221,7 +315,15 @@ function MessageError() {
   );
 }
 
-function FailedTurnError({ onRetry, onEdit, retryable }: { onRetry: () => void; onEdit: () => void; retryable: boolean }) {
+function FailedTurnError({
+  onRetry,
+  onEdit,
+  retryable,
+}: {
+  onRetry: () => void;
+  onEdit: () => void;
+  retryable: boolean;
+}) {
   return (
     <MessageScrollerItem messageId="failed-turn-error">
       <Message>
@@ -229,6 +331,7 @@ function FailedTurnError({ onRetry, onEdit, retryable }: { onRetry: () => void; 
           <Bubble variant="destructive">
             <BubbleContent dir="auto" className="flex flex-col gap-3">
               <span>{fa.chat.regenerationFailed}</span>
+
               <div className="flex items-center gap-2">
                 {retryable && (
                   <Button
@@ -242,6 +345,7 @@ function FailedTurnError({ onRetry, onEdit, retryable }: { onRetry: () => void; 
                     {fa.chat.retryAction}
                   </Button>
                 )}
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -271,6 +375,7 @@ export function ChatMessages({
   failedTurn,
   onRetry,
   onEdit,
+  onRegenerate,
 }: ChatMessagesProps) {
   return (
     <MessageScrollerProvider>
@@ -290,6 +395,7 @@ export function ChatMessages({
                   message={message}
                   isStreaming={isLoading}
                   isLastMessage={isLoading && index === messages.length - 1}
+                  onRegenerate={onRegenerate}
                 />
               ))
             )}

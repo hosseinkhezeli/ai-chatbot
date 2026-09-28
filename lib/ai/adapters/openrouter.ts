@@ -46,7 +46,7 @@ export class OpenRouterClient extends BaseAIClient {
       abortSignal,
       tools,
       stopWhen,
-      maxRetries: 3, // 1 initial + 3 retries = 4 total attempts
+      maxRetries: 3,
 
       onError({ error }) {
         console.error('OpenRouter stream error:', error);

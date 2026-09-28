@@ -397,8 +397,9 @@ export function Chat({ conversationId, onEnsureConversation }: ChatProps) {
           onRetryHistory={handleRetryHistory}
           failedTurn={failedTurn}
           onRetry={handleRetry}
-          onEdit={handleEdit}
-        />
+          onEdit={handleEdit} onRegenerate={function (messageId: string): void {
+            throw new Error('Function not implemented.');
+          } }        />
 
         <ChatComposer
           value={input}

@@ -374,7 +374,7 @@ The factory is the composition root for AI providers.
 Current configuration:
 
 ```env
-AI_PROVIDER=gapgpt
+AI_PROVIDER=openrouter
 ```
 
 The factory resolves:

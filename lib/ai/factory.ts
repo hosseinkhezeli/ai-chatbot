@@ -5,9 +5,9 @@ import { OpenRouterClient } from './adapters/openrouter';
 import type { AIClient } from './types';
 
 export const AI_PROVIDERS = {
+  openrouter: OpenRouterClient,
   google: GoogleAIClient,
   gapgpt: GapGPTAIClient,
-  openrouter: OpenRouterClient,
 } as const;
 
 export type AIProvider = keyof typeof AI_PROVIDERS;
