@@ -11,6 +11,32 @@ import {
 
 import { withRetry, isRetryableError } from '../retry';
 
+function serializeMemory(memory: {
+  id: string;
+  type: string;
+  key: string;
+  content: string;
+  source: string;
+  confidence: number;
+  sensitivity: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  lastConfirmedAt: Date | null;
+}) {
+  return {
+    id: memory.id,
+    type: memory.type,
+    key: memory.key,
+    content: memory.content,
+    source: memory.source,
+    confidence: memory.confidence,
+    sensitivity: memory.sensitivity,
+    createdAt: memory.createdAt?.toISOString() ?? null,
+    updatedAt: memory.updatedAt?.toISOString() ?? null,
+    lastConfirmedAt: memory.lastConfirmedAt?.toISOString() ?? null,
+  };
+}
+
 const saveMemorySchema = z.object({
   type: z
     .enum([
@@ -161,12 +187,12 @@ export function createMemoryTools(userId: string) {
   return {
     saveMemory: tool({
       description:
-        'Store a persistent user memory. Use this when the user explicitly asks you to remember something, or when the application explicitly permits persistent memory creation.',
+        'Store a persistent user memory. Use this when the user explicitly asks you to remember something, or when the application explicitly permits persistent memory creation. Preserve the user’s intended meaning accurately. Do not invent or reinterpret names, entities, categories, or facts based on phonetic similarity.',
 
       inputSchema: saveMemorySchema,
 
       execute: async (params) => {
-        // Retry transient DB errors; permanent/validation errors are thrown and caught below
+        // Retry transient DB errors; permanent/validation errors propagate.
         const result = await withRetry(
           async () => {
             return saveMemory({
@@ -183,7 +209,10 @@ export function createMemoryTools(userId: string) {
             maxAttempts: 4,
             isRetryable: isRetryableError,
             onRetry: (error, attempt, delayMs) => {
-              console.log(`[saveMemory] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`, error instanceof Error ? error.message : String(error));
+              console.log(
+                `[saveMemory] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`,
+                error instanceof Error ? error.message : String(error),
+              );
             },
           },
         );
@@ -191,7 +220,7 @@ export function createMemoryTools(userId: string) {
         return {
           success: true,
           action: result.action,
-          memory: result.memory,
+          memory: serializeMemory(result.memory),
         };
       },
     }),
@@ -203,21 +232,21 @@ export function createMemoryTools(userId: string) {
       inputSchema: searchMemorySchema,
 
       execute: async ({ query, limit = 5 }) => {
-        // Retry transient DB errors; permanent/validation errors are thrown and caught below
-        const results = await withRetry(
-          async () => searchMemories(userId, query, limit),
-          {
-            maxAttempts: 4,
-            isRetryable: isRetryableError,
-            onRetry: (error, attempt, delayMs) => {
-              console.log(`[searchMemory] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`, error instanceof Error ? error.message : String(error));
-            },
+        // Retry transient DB errors; permanent/validation errors propagate.
+        const results = await withRetry(async () => searchMemories(userId, query, limit), {
+          maxAttempts: 4,
+          isRetryable: isRetryableError,
+          onRetry: (error, attempt, delayMs) => {
+            console.log(
+              `[searchMemory] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`,
+              error instanceof Error ? error.message : String(error),
+            );
           },
-        );
+        });
 
         return {
           success: true,
-          results,
+          results: results.map(serializeMemory),
         };
       },
     }),
@@ -230,16 +259,16 @@ export function createMemoryTools(userId: string) {
 
       execute: async () => {
         // Retry transient DB errors for the search
-        const results = await withRetry(
-          async () => searchMemories(userId, 'birthdate', 10),
-          {
-            maxAttempts: 4,
-            isRetryable: isRetryableError,
-            onRetry: (error, attempt, delayMs) => {
-              console.log(`[getUserAge] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`, error instanceof Error ? error.message : String(error));
-            },
+        const results = await withRetry(async () => searchMemories(userId, 'birthdate', 10), {
+          maxAttempts: 4,
+          isRetryable: isRetryableError,
+          onRetry: (error, attempt, delayMs) => {
+            console.log(
+              `[getUserAge] Transient error on attempt ${attempt}, retrying in ${delayMs}ms:`,
+              error instanceof Error ? error.message : String(error),
+            );
           },
-        );
+        });
 
         const birthdateMemory = results.find((memory) => memory.key === 'birthdate');
 
