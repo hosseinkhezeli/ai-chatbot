@@ -1,7 +1,7 @@
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
 
 import { db } from '@/db/client';
-import { memories, type memorySourceEnum, type memoryTypeEnum } from '@/db/schema';
+import { memories } from '@/db/schema';
 
 export type MemoryType =
   | 'profile'
@@ -23,13 +23,78 @@ export type SaveMemoryParams = {
   type: MemoryType;
   key: string;
   content: string;
-  source?: MemorySource;
+  source: MemorySource;
   confidence?: number;
   sensitivity?: MemorySensitivity;
 };
 
+const DEFAULT_CONFIDENCE_BY_SOURCE: Record<MemorySource, number> = {
+  explicit: 100,
+  tool: 90,
+  conversation: 70,
+  inferred: 50,
+};
+
+const PROTECTED_USER_IDENTITY_KEYS = new Set([
+  'name',
+  'user_name',
+  'display_name',
+  'preferred_name',
+]);
+
+const FORBIDDEN_ASSISTANT_MEMORY_KEYS = new Set([
+  'assistant_name',
+  'assistant_identity',
+  'assistant_model',
+  'assistant_provider',
+]);
+
 function escapeIlike(value: string): string {
   return value.replace(/[%_\\]/g, '\\$&');
+}
+
+function normalizeKey(key: string): string {
+  return key.trim().toLowerCase();
+}
+
+function normalizeContent(content: string): string {
+  return content.trim();
+}
+
+function validateMemory({
+  type,
+  key,
+  source,
+  confidence,
+  sensitivity,
+}: {
+  type: MemoryType;
+  key: string;
+  source: MemorySource;
+  confidence: number;
+  sensitivity: MemorySensitivity;
+}) {
+  if (sensitivity === 'high') {
+    throw new Error('High-sensitivity memories are not supported yet.');
+  }
+
+  if (FORBIDDEN_ASSISTANT_MEMORY_KEYS.has(key)) {
+    throw new Error(`Assistant identity cannot be stored as user memory: "${key}".`);
+  }
+
+  if (type === 'profile' && PROTECTED_USER_IDENTITY_KEYS.has(key) && source !== 'explicit') {
+    throw new Error(`User identity memory "${key}" requires an explicit source.`);
+  }
+
+  if (source === 'inferred' && confidence > 79) {
+    throw new Error(
+      'Inferred memories cannot have high confidence. Explicit confirmation is required.',
+    );
+  }
+
+  if (confidence < 0 || confidence > 100) {
+    throw new Error('Memory confidence must be between 0 and 100.');
+  }
 }
 
 export async function saveMemory({
@@ -37,12 +102,12 @@ export async function saveMemory({
   type,
   key,
   content,
-  source = 'explicit',
-  confidence = 100,
+  source,
+  confidence = DEFAULT_CONFIDENCE_BY_SOURCE[source],
   sensitivity = 'normal',
 }: SaveMemoryParams) {
-  const normalizedKey = key.trim().toLowerCase();
-  const normalizedContent = content.trim();
+  const normalizedKey = normalizeKey(key);
+  const normalizedContent = normalizeContent(content);
 
   if (!normalizedKey) {
     throw new Error('Memory key cannot be empty.');
@@ -52,9 +117,15 @@ export async function saveMemory({
     throw new Error('Memory content cannot be empty.');
   }
 
-  if (sensitivity === 'high') {
-    throw new Error('High-sensitivity memories are not supported yet.');
-  }
+  const normalizedConfidence = Math.min(100, Math.max(0, confidence));
+
+  validateMemory({
+    type,
+    key: normalizedKey,
+    source,
+    confidence: normalizedConfidence,
+    sensitivity,
+  });
 
   const existing = await db
     .select({
@@ -71,11 +142,17 @@ export async function saveMemory({
     .limit(1);
 
   if (existing[0]) {
+    const isExplicitConfirmation = source === 'explicit';
+
     const [updated] = await db
       .update(memories)
       .set({
+        type,
+        source: isExplicitConfirmation ? 'explicit' : source,
+        confidence: isExplicitConfirmation ? 100 : normalizedConfidence,
+        sensitivity,
         updatedAt: new Date(),
-        lastConfirmedAt: source === 'explicit' ? new Date() : undefined,
+        lastConfirmedAt: isExplicitConfirmation ? new Date() : undefined,
       })
       .where(eq(memories.id, existing[0].id))
       .returning();
@@ -94,7 +171,7 @@ export async function saveMemory({
       key: normalizedKey,
       content: normalizedContent,
       source,
-      confidence: Math.min(100, Math.max(0, confidence)),
+      confidence: normalizedConfidence,
       sensitivity,
       lastConfirmedAt: source === 'explicit' ? new Date() : null,
     })

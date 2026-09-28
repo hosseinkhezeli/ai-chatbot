@@ -164,12 +164,12 @@ export const memories = pgTable(
      */
     content: text('content').notNull(),
 
-    source: memorySourceEnum('source').notNull().default('explicit'),
+    source: memorySourceEnum('source').notNull(),
 
     /**
      * 0-100 confidence score.
      */
-    confidence: integer('confidence').notNull().default(100),
+    confidence: integer('confidence').notNull(),
 
     sensitivity: memorySensitivityEnum('sensitivity').notNull().default('normal'),
 

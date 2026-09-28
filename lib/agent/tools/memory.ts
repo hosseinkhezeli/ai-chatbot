@@ -36,7 +36,6 @@ function serializeMemory(memory: {
     lastConfirmedAt: memory.lastConfirmedAt?.toISOString() ?? null,
   };
 }
-
 const saveMemorySchema = z.object({
   type: z
     .enum([
@@ -50,25 +49,23 @@ const saveMemorySchema = z.object({
       'commitment',
       'interaction_pattern',
     ])
-    .describe('Category of the memory.'),
+    .describe('Category of the user memory.'),
 
   key: z
     .string()
     .min(1)
     .max(100)
     .describe(
-      'Stable semantic key for retrieval, e.g. "birthdate", "favorite_language", "partner_name".',
+      'Stable semantic key for user-memory retrieval, e.g. "birthdate", "favorite_language", "partner_name".',
     ),
 
   content: z
     .string()
     .min(1)
     .max(1000)
-    .describe('The information to remember. Preserve the user-provided value accurately.'),
-
-  source: z.enum(['explicit', 'conversation', 'inferred', 'tool']).default('explicit'),
-
-  confidence: z.number().int().min(0).max(100).default(100),
+    .describe(
+      'Information explicitly stated by the user or otherwise permitted by the application memory policy. Preserve the user-provided meaning accurately.',
+    ),
 
   sensitivity: z.enum(['normal', 'sensitive', 'high']).default('normal'),
 });
@@ -186,8 +183,8 @@ function calculateAge(birthdate: PersianDate, currentDate: PersianDate): number 
 export function createMemoryTools(userId: string) {
   return {
     saveMemory: tool({
-      description:
-        'Store a persistent user memory. Use this when the user explicitly asks you to remember something, or when the application explicitly permits persistent memory creation. Preserve the user’s intended meaning accurately. Do not invent or reinterpret names, entities, categories, or facts based on phonetic similarity.',
+      description: `Store persistent memory about the authenticated USER only.Never store information about the assistant itself.Never store the assistant's name, identity, model, provider, capabilities,actions, or personality as user memory.Never swap user and assistant identity.Only store information that:- the user explicitly asked the assistant to remember; or- the application explicitly allows to be persisted as automatic user memory.Do not invent, reinterpret, normalize, or infer identities, names, entities,games, relationships, or facts from ambiguous wording, phonetic similarity,slang, jokes, or assistant-generated text.Do not treat assistant-generated statements as user facts.
+`,
 
       inputSchema: saveMemorySchema,
 
@@ -200,8 +197,8 @@ export function createMemoryTools(userId: string) {
               type: params.type as MemoryType,
               key: params.key,
               content: params.content,
-              source: params.source as MemorySource,
-              confidence: params.confidence,
+              source: 'conversation',
+              confidence: 70,
               sensitivity: params.sensitivity as MemorySensitivity,
             });
           },

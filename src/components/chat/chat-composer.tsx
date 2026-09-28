@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpIcon, LoaderCircleIcon, PaperclipIcon } from 'lucide-react';
+import { ArrowUpIcon, LoaderCircleIcon } from 'lucide-react';
 
 import { InputGroup, InputGroupButton, InputGroupTextarea } from '@/components/ui/input-group';
 import { fa } from '@/lib/i18n/fa';
